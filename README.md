@@ -1,38 +1,390 @@
-# Plutus · bank-ledger
+<div align="center">
 
-> *Plutus, deus grego da riqueza, cuida de cada centavo do livro-razão.*
+<img src="docs/assets/banner.svg" alt="Plutus — livro-razão bancário em C#" width="100%" />
 
-**Livro-razão bancário** (contas, depósitos, saques, transferências e extratos) em **C# / .NET 10**,
-com persistência em **SQLite usando Dapper** e interface de console rica.
+# ⚖ Plutus
+### O deus da riqueza guarda cada centavo
 
-Foco em **modelagem de domínio** e em recursos modernos do C#, sem depender de ORM pesado.
+**Livro-razão bancário em C# / .NET 10, com foco em modelagem de domínio.**
+Contas, depósitos, saques, transferências e extratos, com regras protegidas pelo próprio domínio,<br/>
+transações explícitas com Dapper e concorrência otimista testada sob carga paralela.
 
-## Competências demonstradas
-- **DDD tático:** agregados, entidades, value objects, domain services, domain events
-- C# moderno: `record`/`record struct`, nullable reference types, `required`, pattern matching
-- **Result pattern** vs. exceções para erros de negócio
-- **LINQ** (extratos, agrupamentos, paginação) e `async/await` com `CancellationToken`
-- **Dapper** + `Microsoft.Data.Sqlite`, transações e **concorrência otimista**
-- Generic Host, injeção de dependência, Options pattern, `ILogger`
-- Testes com **xUnit, Shouldly e NSubstitute**; testes de arquitetura com **NetArchTest**
-- Solution organizada: `Directory.Build.props`, `.editorconfig`, warnings como erro
+[![CI](https://github.com/GustavoThe01/plutus-ledger/actions/workflows/ci.yml/badge.svg)](https://github.com/GustavoThe01/plutus-ledger/actions/workflows/ci.yml)
+![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-14-239120?style=flat-square&logo=csharp&logoColor=white)
+![Dapper](https://img.shields.io/badge/Dapper-micro_ORM-1f6feb?style=flat-square)
+![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
+![xUnit](https://img.shields.io/badge/xUnit-v3-5C2D91?style=flat-square)
+![Roadmap](https://img.shields.io/badge/roadmap-dia_01_de_10-ca8a04?style=flat-square)
+![Testes](https://img.shields.io/badge/testes-1_passando-15803d?style=flat-square)
 
-## Arquitetura planejada
+</div>
+
+---
+
+## 👨‍💻 Autor
+
+<table>
+  <tr>
+    <td width="62%">
+
+**Plutus** é o terceiro projeto do meu portfólio público de Desenvolvedor Pleno, idealizado e mantido por **Gustavo Osterno Thé**.
+
+Um sistema financeiro é o lugar onde **erros custam dinheiro de verdade**. Por isso o Plutus foi pensado para mostrar como um domínio bem modelado impede estados inválidos, como transações garantem consistência e como testar o que acontece quando duas operações tentam mexer no mesmo saldo ao mesmo tempo.
+
+    </td>
+    <td width="38%">
+
+| | |
+|---|---|
+| 🌐 Site | [site-gustavothe-dev.web.app](https://site-gustavothe-dev.web.app/) |
+| 💼 LinkedIn | [gustavoosterno](https://www.linkedin.com/in/gustavoosterno/) |
+| 🐙 GitHub | [@GustavoThe01](https://github.com/GustavoThe01) |
+| 📸 Instagram | [@gustavo.osterno](https://www.instagram.com/gustavo.osterno) |
+
+    </td>
+  </tr>
+</table>
+
+---
+
+## 📑 Sumário
+
+- [Em números](#-em-números)
+- [A origem do nome](#-a-origem-do-nome)
+- [O que o sistema faz](#-o-que-o-sistema-faz)
+- [Arquitetura](#️-arquitetura)
+- [Modelo de domínio](#-modelo-de-domínio)
+- [Como uma transferência acontece](#-como-uma-transferência-acontece)
+- [Competências demonstradas](#-competências-demonstradas)
+- [Metodologias e decisões](#-metodologias-e-decisões)
+- [Roadmap](#️-roadmap)
+- [Como rodar](#-como-rodar)
+- [Testes](#-testes)
+- [Estrutura do projeto](#-estrutura-do-projeto)
+- [O que ainda falta](#-o-que-ainda-falta)
+- [Projetos relacionados](#-projetos-relacionados)
+
+---
+
+## 📊 Em números
+
+<div align="center">
+
+| 💎 Domínio | 🧱 Arquitetura | 🧪 Qualidade | 🗓️ Processo |
+|:---:|:---:|:---:|:---:|
+| **1** agregado (`Account`) | **4** projetos + testes | warnings tratados como **erro** | **10** dias de roadmap |
+| value objects com `record struct` | regra de dependência **testada** | xUnit v3 · Microsoft.Testing.Platform | **1** ADR registrado |
+| domain events + Result pattern | Central Package Management | NetArchTest (planejado) | Conventional Commits |
+
+</div>
+
+---
+
+## ⚖ A origem do nome
+
+> *Plutus, filho de Deméter, era o deus grego da riqueza. Zeus o cegou para que distribuísse fortuna sem favorecer ninguém.*
+
+Um livro-razão precisa ser exatamente assim: **imparcial e exato**. Cada centavo que entra ou sai é registrado, nenhum saldo muda sem uma transação que o justifique, e as regras valem igualmente para todas as contas.
+
+---
+
+## ✨ O que o sistema faz
+
+| Módulo | O que resolve |
+|---|---|
+| 🏦 **Contas** | Abertura, bloqueio e encerramento, com número de conta validado |
+| ➕ **Depósitos** | Entrada de valores com registro no extrato |
+| ➖ **Saques** | Respeitam saldo e limite; conta bloqueada não movimenta |
+| 🔁 **Transferências** | Débito e crédito na **mesma transação**: ou acontecem os dois, ou nenhum |
+| 📜 **Extrato** | Por período, paginado, com saldo acumulado e resumo mensal (LINQ) |
+| 💸 **Tarifas e juros** | Regras diferentes por tipo de conta (Strategy) |
+| 🖥️ **Console** | Interface rica com Spectre.Console: tabelas, cores e prompts |
+
+---
+
+## 🏛️ Arquitetura
+
+```mermaid
+flowchart LR
+    subgraph Cli["Plutus.Cli"]
+        UI["Spectre.Console<br/>Generic Host · DI"]
+    end
+    subgraph App["Plutus.Application"]
+        UC["Casos de uso<br/>OpenAccount · Deposit<br/>Withdraw · Transfer"]
+        PORTS["Interfaces<br/>IAccountRepository<br/>IUnitOfWork"]
+    end
+    subgraph Dom["Plutus.Domain"]
+        AGG["Account (agregado)<br/>Money · AccountNumber<br/>Domain events"]
+    end
+    subgraph Infra["Plutus.Infrastructure"]
+        DAP["Dapper<br/>Microsoft.Data.Sqlite<br/>migrations SQL"]
+    end
+    DB[(SQLite)]
+
+    UI --> UC
+    UC --> AGG
+    UC --> PORTS
+    DAP -. implementa .-> PORTS
+    DAP --> DB
 ```
-Plutus.slnx
+
+| Projeto | Responsabilidade | Depende de |
+|---|---|---|
+| `Plutus.Domain` | Regras de negócio puras | — |
+| `Plutus.Application` | Orquestra casos de uso | Domain |
+| `Plutus.Infrastructure` | Banco, Dapper, migrations | Application |
+| `Plutus.Cli` | Interface e composition root | Application, Infrastructure |
+
+> ✅ A regra "**Domain não depende de ninguém**" já é verificada por um teste automatizado ([`LayerDependencyTests`](tests/Plutus.Domain.Tests/LayerDependencyTests.cs)).
+
+---
+
+## 🧬 Modelo de domínio
+
+```mermaid
+classDiagram
+    class Account {
+        +AccountId Id
+        +AccountNumber Number
+        +Money Balance
+        +Money OverdraftLimit
+        +AccountStatus Status
+        +int Version
+        +Deposit(Money) Result
+        +Withdraw(Money) Result
+        +Block()
+    }
+    class Money {
+        <<record struct>>
+        +decimal Amount
+        +string Currency
+    }
+    class AccountNumber {
+        <<record struct>>
+        +string Value
+    }
+    class Transaction {
+        +TransactionType Type
+        +Money Amount
+        +DateTimeOffset OccurredAt
+    }
+    class TransferService {
+        +Transfer(Account, Account, Money) Result
+    }
+    class IDomainEvent {
+        <<interface>>
+    }
+    class MoneyTransferred
+    class WithdrawalRejected
+
+    Account *-- Money
+    Account *-- AccountNumber
+    Account "1" o-- "*" Transaction
+    TransferService ..> Account
+    IDomainEvent <|.. MoneyTransferred
+    IDomainEvent <|.. WithdrawalRejected
+```
+
+### Estados de uma conta
+
+```mermaid
+stateDiagram-v2
+    [*] --> Active : abertura
+    Active --> Blocked : bloqueio (fraude / ordem judicial)
+    Blocked --> Active : desbloqueio
+    Active --> Closed : encerramento (saldo zero)
+    Closed --> [*]
+```
+
+---
+
+## 🔁 Como uma transferência acontece
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant H as TransferHandler
+    participant R as IAccountRepository
+    participant T as TransferService
+    participant UoW as IUnitOfWork
+    participant DB as SQLite
+
+    U->>H: Transferir R$ 100 de A para B
+    H->>R: GetAsync(A), GetAsync(B)
+    R->>DB: SELECT (com Version)
+    H->>T: Transfer(A, B, 100)
+    alt saldo e status válidos
+        T-->>H: Result.Success + MoneyTransferred
+        H->>UoW: BeginTransaction
+        H->>R: UpdateAsync(A), UpdateAsync(B)
+        R->>DB: UPDATE ... WHERE Id = @Id AND Version = @Version
+        alt nenhuma linha afetada (outra operação chegou antes)
+            UoW->>DB: ROLLBACK
+            H-->>U: Conflito de concorrência, tente novamente
+        else ok
+            UoW->>DB: COMMIT
+            H-->>U: Transferência concluída
+        end
+    else regra violada
+        T-->>H: Result.Failure (saldo insuficiente / conta bloqueada)
+        H-->>U: Mensagem de erro de negócio
+    end
+```
+
+---
+
+## 🧠 Competências demonstradas
+
+| Área | Conceitos |
+|---|---|
+| **DDD tático** | Agregados, entidades, value objects, domain services, domain events, linguagem ubíqua |
+| **C# moderno** | `record`/`record struct`, nullable reference types, `required`, pattern matching |
+| **Tratamento de erros** | **Result pattern** para regras de negócio, exceções só para o inesperado |
+| **Dados** | Dapper, SQL escrito à mão, `IDbTransaction`, migrations SQL versionadas |
+| **Concorrência** | Concorrência **otimista** com coluna `Version`, teste de transferências paralelas |
+| **Assíncrono** | `async/await` com `CancellationToken` ponta a ponta |
+| **LINQ** | Projeções, agrupamentos, execução adiada, `IEnumerable` vs `IQueryable` |
+| **Infra .NET** | Generic Host, DI, Options pattern, `ILogger` |
+| **Organização** | `.slnx`, `Directory.Build.props`, Central Package Management, `.editorconfig` |
+| **Testes** | xUnit v3, NSubstitute, testes de integração e de arquitetura |
+
+---
+
+## 🧭 Metodologias e decisões
+
+- **TDD** no domínio: primeiro o teste que descreve a regra, depois a implementação.
+- **Roadmap diário público** — veja o [ROADMAP.md](ROADMAP.md).
+- **Conventional Commits**, versionamento semântico e **ADRs**.
+- **Warnings são erros**: o build quebra antes de um problema chegar ao `main`.
+
+| ADR | Decisão | Status |
+|---|---|---|
+| [0001](docs/adr/0001-dapper-em-vez-de-ef-core.md) | Dapper em vez de EF Core (EF Core fica para o Bifrost, para comparação) | ✅ Aceita |
+
+---
+
+## 🗺️ Roadmap
+
+| Semana | Dias | Tema | Progresso |
+|---|---|---|---|
+| 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨⬜⬜⬜⬜ |
+| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | ⬜⬜⬜⬜⬜ |
+
+Detalhes no [ROADMAP.md](ROADMAP.md) · Mudanças no [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## 🚀 Como rodar
+
+**Pré-requisito:** [.NET 10 SDK](https://dotnet.microsoft.com/download).
+
+```bash
+git clone https://github.com/GustavoThe01/plutus-ledger.git
+```
+
+```bash
+cd plutus-ledger
+```
+
+Compilar a solution:
+
+```bash
+dotnet build
+```
+
+Rodar os testes:
+
+```bash
+dotnet test
+```
+
+Executar o console:
+
+```bash
+dotnet run --project src/Plutus.Cli
+```
+
+> 📦 A partir do Dia 10 haverá um executável único (single-file) na aba *Releases*.
+
+---
+
+## 🧪 Testes
+
+Os testes usam **xUnit v3** sobre o **Microsoft.Testing.Platform**, o novo executor de testes do .NET 10 (configurado em [`global.json`](global.json)).
+
+| Projeto de teste | Tipo | Situação |
+|---|---|---|
+| `Plutus.Domain.Tests` | Unitários + regra de camadas | 🟡 1 teste (dependência entre camadas) |
+| `Plutus.Application.Tests` | Casos de uso com NSubstitute | ⏳ Dia 04 |
+| `Plutus.IntegrationTests` | Dapper + SQLite em memória, concorrência | ⏳ Dias 08–09 |
+| Testes de arquitetura | NetArchTest | ⏳ Dia 09 |
+
+---
+
+## 📁 Estrutura do projeto
+
+```
+plutus-ledger/
+├── .github/workflows/ci.yml        # ✅ restore, build e testes a cada push
+├── docs/
+│   ├── adr/                        # ✅ decisões de arquitetura
+│   └── assets/                     # ✅ banner e imagens
 ├── src/
-│   ├── Plutus.Domain/          # Account, Money, Transaction, eventos
-│   ├── Plutus.Application/     # casos de uso, interfaces
-│   ├── Plutus.Infrastructure/  # Dapper, SQLite, migrations
-│   └── Plutus.Cli/             # Spectre.Console + Generic Host
-└── tests/
-    ├── Plutus.Domain.Tests/
-    ├── Plutus.Application.Tests/
-    └── Plutus.IntegrationTests/
+│   ├── Plutus.Domain/              # ✅ projeto · ⏳ Dia 02 — Account, Money
+│   ├── Plutus.Application/         # ✅ projeto · ⏳ Dia 04 — casos de uso
+│   ├── Plutus.Infrastructure/      # ✅ projeto · ⏳ Dia 05 — Dapper + SQLite
+│   └── Plutus.Cli/                 # ✅ banner · ⏳ Dia 07 — Spectre.Console
+├── tests/
+│   └── Plutus.Domain.Tests/        # ✅ teste de arquitetura
+├── Plutus.slnx
+├── Directory.Build.props           # ✅ Nullable, warnings como erro
+├── Directory.Packages.props        # ✅ versões centralizadas
+├── global.json                     # ✅ SDK + Microsoft.Testing.Platform
+├── .editorconfig
+├── CHANGELOG.md
+└── ROADMAP.md
 ```
 
-## Como rodar
-_A preencher no Dia 10 (publish single-file)._
+---
 
-## Status
-Veja o [ROADMAP.md](ROADMAP.md).
+## 🧩 O que ainda falta
+
+Checklist vivo do que ainda precisa ser incrementado neste repositório.
+
+**Projeto**
+- [ ] `Money`, `AccountNumber` e agregado `Account` com testes (Dia 02)
+- [ ] Depósito, saque, transferência, Result pattern e domain events (Dia 03)
+- [ ] Casos de uso, DI e Options pattern (Dia 04)
+- [ ] Persistência com Dapper + SQLite e migrations (Dia 05)
+- [ ] Extratos com LINQ (Dia 06)
+- [ ] Console com Spectre.Console e Generic Host (Dia 07)
+- [ ] Concorrência otimista com teste paralelo (Dia 08)
+- [ ] Testes de integração, mocks e NetArchTest (Dia 09)
+- [ ] Tarifas com Strategy, publish single-file e release `v1.0.0` (Dia 10)
+
+**README**
+- [ ] GIF do console em funcionamento (extrato e transferência)
+- [ ] Badge de cobertura de testes
+- [ ] Resultado real do teste de concorrência (quantas transferências paralelas, saldo final)
+- [ ] Atualizar "Em números" e a tabela de testes com valores reais
+- [ ] Definir e adicionar uma licença (`LICENSE`)
+- [ ] Versão em inglês do README
+
+---
+
+## 🔗 Projetos relacionados
+
+| Projeto | Stack | Relação |
+|---|---|---|
+| ☿ [Mercurium](https://github.com/GustavoThe01/mercurium-sql) | SQLite | Fundamentos de modelagem e SQL |
+| ⚒ [Nidavellir](https://github.com/GustavoThe01/nidavellir-inventory) | Java 21 | O mesmo nível de fundamento, em Java |
+| ⚖ **Plutus** | C# + Dapper | *você está aqui* |
+| ♾ [Moirai](https://github.com/GustavoThe01/moirai-taskflow) | Spring Boot | API completa em Java |
+| ✦ [Bifrost](https://github.com/GustavoThe01/bifrost-orders) | ASP.NET Core | **Próximo passo em .NET**: EF Core, CQRS e API |
+
+<div align="center">
+
+<sub>Contado centavo por centavo por <a href="https://github.com/GustavoThe01">Gustavo Osterno Thé</a></sub>
+
+</div>
