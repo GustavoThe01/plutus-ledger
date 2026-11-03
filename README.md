@@ -28,9 +28,9 @@ transações explícitas com Dapper e concorrência otimista testada sob carga p
   <tr>
     <td width="62%">
 
-**Plutus** é o terceiro projeto do meu portfólio público de Desenvolvedor Pleno, idealizado e mantido por **Gustavo Osterno Thé**.
+Eu sou o **Gustavo Osterno Thé**, e o **Plutus** é um dos cinco projetos do meu portfólio público de Desenvolvedor Pleno. Idealizei, desenvolvo e mantenho este repositório.
 
-Um sistema financeiro é o lugar onde **erros custam dinheiro de verdade**. Por isso o Plutus foi pensado para mostrar como um domínio bem modelado impede estados inválidos, como transações garantem consistência e como testar o que acontece quando duas operações tentam mexer no mesmo saldo ao mesmo tempo.
+Um sistema financeiro é o lugar onde **erros custam dinheiro de verdade**. Por isso pensei o Plutus para mostrar como um domínio bem modelado impede estados inválidos, como transações garantem consistência e como testar o que acontece quando duas operações tentam mexer no mesmo saldo ao mesmo tempo.
 
     </td>
     <td width="38%">
@@ -77,15 +77,17 @@ Um sistema financeiro é o lugar onde **erros custam dinheiro de verdade**. Por 
 | value objects com `record struct` | regra de dependência **testada** | xUnit v3 · Microsoft.Testing.Platform | **1** ADR registrado |
 | domain events + Result pattern | Central Package Management | NetArchTest (planejado) | Conventional Commits |
 
+<sub>Metas para o fim do roadmap. O estado atual está nos badges, na seção <a href="#-testes">Testes</a> e em <a href="#-o-que-ainda-falta">O que ainda falta</a>.</sub>
+
 </div>
 
 ---
 
 ## ⚖ A origem do nome
 
-> *Plutus, filho de Deméter, era o deus grego da riqueza. Zeus o cegou para que distribuísse fortuna sem favorecer ninguém.*
+> *Plutus, filho de Deméter, era o deus grego da riqueza. Segundo o mito, Zeus o cegou para que ele não distinguisse justos de injustos ao distribuir a fortuna.*
 
-Um livro-razão precisa ser exatamente assim: **imparcial e exato**. Cada centavo que entra ou sai é registrado, nenhum saldo muda sem uma transação que o justifique, e as regras valem igualmente para todas as contas.
+Escolhi o nome porque um livro-razão precisa ter essa mesma cegueira: ser **imparcial e exato**. No Plutus, cada centavo que entra ou sai é registrado, nenhum saldo muda sem uma transação que o justifique, e as regras valem igualmente para todas as contas.
 
 ---
 
@@ -136,7 +138,7 @@ flowchart LR
 | `Plutus.Infrastructure` | Banco, Dapper, migrations | Application |
 | `Plutus.Cli` | Interface e composition root | Application, Infrastructure |
 
-> ✅ A regra "**Domain não depende de ninguém**" já é verificada por um teste automatizado ([`LayerDependencyTests`](tests/Plutus.Domain.Tests/LayerDependencyTests.cs)).
+> ✅ A regra "**Domain não depende de ninguém**" já está protegida por um teste automatizado que escrevi no Dia 01 ([`LayerDependencyTests`](tests/Plutus.Domain.Tests/LayerDependencyTests.cs)).
 
 ---
 
@@ -253,10 +255,10 @@ sequenceDiagram
 
 ## 🧭 Metodologias e decisões
 
-- **TDD** no domínio: primeiro o teste que descreve a regra, depois a implementação.
-- **Roadmap diário público** — veja o [ROADMAP.md](ROADMAP.md).
+- **TDD** no domínio: primeiro escrevo o teste que descreve a regra, depois a implementação.
+- **Roadmap diário público** — avanço um dia de cada vez e registro tudo no [ROADMAP.md](ROADMAP.md).
 - **Conventional Commits**, versionamento semântico e **ADRs**.
-- **Warnings são erros**: o build quebra antes de um problema chegar ao `main`.
+- **Warnings são erros**: configurei o build para quebrar antes de um problema chegar ao `main`.
 
 | ADR | Decisão | Status |
 |---|---|---|
@@ -350,7 +352,7 @@ plutus-ledger/
 
 ## 🧩 O que ainda falta
 
-Checklist vivo do que ainda precisa ser incrementado neste repositório.
+Mantenho aqui um checklist vivo do que ainda vou incrementar neste repositório.
 
 **Projeto**
 - [ ] `Money`, `AccountNumber` e agregado `Account` com testes (Dia 02)
@@ -381,10 +383,10 @@ Checklist vivo do que ainda precisa ser incrementado neste repositório.
 | ⚒ [Nidavellir](https://github.com/GustavoThe01/nidavellir-inventory) | Java 21 | O mesmo nível de fundamento, em Java |
 | ⚖ **Plutus** | C# + Dapper | *você está aqui* |
 | ♾ [Moirai](https://github.com/GustavoThe01/moirai-taskflow) | Spring Boot | API completa em Java |
-| ✦ [Bifrost](https://github.com/GustavoThe01/bifrost-orders) | ASP.NET Core | **Próximo passo em .NET**: EF Core, CQRS e API |
+| ✦ [Bifrost](https://github.com/GustavoThe01/bifrost-orders) | ASP.NET Core | **O par deste projeto em .NET**: EF Core, CQRS e API completa |
 
 <div align="center">
 
-<sub>Contado centavo por centavo por <a href="https://github.com/GustavoThe01">Gustavo Osterno Thé</a></sub>
+<sub>Contado por mim, centavo por centavo · <a href="https://github.com/GustavoThe01">Gustavo Osterno Thé</a></sub>
 
 </div>
