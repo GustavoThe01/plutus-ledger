@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>plutus</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Plutus.Application\Plutus.Application.csproj" />
+    <ProjectReference Include="..\Plutus.Infrastructure\Plutus.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

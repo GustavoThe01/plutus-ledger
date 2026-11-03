@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Plutus.Domain/Plutus.Domain.csproj" />
+    <Project Path="src/Plutus.Application/Plutus.Application.csproj" />
+    <Project Path="src/Plutus.Infrastructure/Plutus.Infrastructure.csproj" />
+    <Project Path="src/Plutus.Cli/Plutus.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Plutus.Domain.Tests/Plutus.Domain.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path=".editorconfig" />
+    <File Path="global.json" />
+  </Folder>
+</Solution>

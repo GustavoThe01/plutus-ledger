@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Plutus.Application\Plutus.Application.csproj" />
+  </ItemGroup>
+</Project>
