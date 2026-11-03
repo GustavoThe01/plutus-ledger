@@ -12,3 +12,6 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Pipeline de CI no GitHub Actions.
 - Projeto de console `Plutus.Cli` (composition root).
 - ADR 0001 — Dapper em vez de EF Core.
+- Value objects `Money` (com moeda ISO 4217) e `AccountNumber` (com dígito verificador de Luhn).
+- Agregado `Account` com abertura, limite, bloqueio, desbloqueio e encerramento, protegendo a invariante `saldo >= -limite`.
+- 40 testes unitários do domínio.

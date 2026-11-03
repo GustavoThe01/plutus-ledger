@@ -11,9 +11,9 @@
 - **Conceitos:** organização de solution, MSBuild
 
 ### Dia 02 — Value objects e agregado
-- [ ] `Money` (`readonly record struct`, `decimal`, moeda), `AccountNumber`
-- [ ] Agregado `Account` com invariantes (saldo, conta bloqueada, limite)
-- [ ] Testes unitários escritos antes (TDD)
+- [x] `Money` (`readonly record struct`, `decimal`, moeda), `AccountNumber`
+- [x] Agregado `Account` com invariantes (saldo, conta bloqueada, limite)
+- [x] Testes unitários escritos antes (TDD)
 - **Conceitos:** igualdade por valor, agregado como fronteira de consistência
 
 ### Dia 03 — Operações e eventos de domínio
