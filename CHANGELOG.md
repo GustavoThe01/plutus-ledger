@@ -15,3 +15,8 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Value objects `Money` (com moeda ISO 4217) e `AccountNumber` (com dígito verificador de Luhn).
 - Agregado `Account` com abertura, limite, bloqueio, desbloqueio e encerramento, protegendo a invariante `saldo >= -limite`.
 - 40 testes unitários do domínio.
+- `Result` e `Result<T>` para falhas de negócio esperadas, com códigos estáveis em `AccountErrors`.
+- Depósito e saque em `Account`, respeitando saldo e limite, com cada operação registrada como `Transaction` imutável.
+- Serviço de domínio `TransferService`, que valida o crédito antes de debitar a origem.
+- Eventos de domínio `MoneyTransferred` e `WithdrawalRejected`.
+- 17 testes novos.

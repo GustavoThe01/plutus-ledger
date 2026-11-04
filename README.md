@@ -15,8 +15,8 @@ transações explícitas com Dapper e concorrência otimista testada sob carga p
 ![Dapper](https://img.shields.io/badge/Dapper-micro_ORM-1f6feb?style=flat-square)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-v3-5C2D91?style=flat-square)
-![Roadmap](https://img.shields.io/badge/roadmap-dia_02_de_10-ca8a04?style=flat-square)
-![Testes](https://img.shields.io/badge/testes-41_passando-15803d?style=flat-square)
+![Roadmap](https://img.shields.io/badge/roadmap-dia_03_de_10-ca8a04?style=flat-square)
+![Testes](https://img.shields.io/badge/testes-58_passando-15803d?style=flat-square)
 
 </div>
 
@@ -153,8 +153,8 @@ classDiagram
         +Money OverdraftLimit
         +AccountStatus Status
         +int Version
-        +Deposit(Money) Result
-        +Withdraw(Money) Result
+        +Deposit(Money, DateTimeOffset) Result
+        +Withdraw(Money, DateTimeOffset) Result
         +Block()
     }
     class Money {
@@ -172,7 +172,7 @@ classDiagram
         +DateTimeOffset OccurredAt
     }
     class TransferService {
-        +Transfer(Account, Account, Money) Result
+        +Transfer(Account, Account, Money, DateTimeOffset) Result~MoneyTransferred~
     }
     class IDomainEvent {
         <<interface>>
@@ -270,7 +270,7 @@ sequenceDiagram
 
 | Semana | Dias | Tema | Progresso |
 |---|---|---|---|
-| 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨🟨⬜⬜⬜ |
+| 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨🟨🟨⬜⬜ |
 | 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | ⬜⬜⬜⬜⬜ |
 
 Detalhes no [ROADMAP.md](ROADMAP.md) · Mudanças no [CHANGELOG.md](CHANGELOG.md).
@@ -317,7 +317,7 @@ Os testes usam **xUnit v3** sobre o **Microsoft.Testing.Platform**, o novo execu
 
 | Projeto de teste | Tipo | Situação |
 |---|---|---|
-| `Plutus.Domain.Tests` | Unitários do domínio + regra de camadas | ✅ 41 testes (Account, Money, AccountNumber, camadas) |
+| `Plutus.Domain.Tests` | Unitários do domínio + regra de camadas | ✅ 58 testes (Account, TransferService, Money, AccountNumber, camadas) |
 | `Plutus.Application.Tests` | Casos de uso com NSubstitute | ⏳ Dia 04 |
 | `Plutus.IntegrationTests` | Dapper + SQLite em memória, concorrência | ⏳ Dias 08–09 |
 | Testes de arquitetura | NetArchTest | ⏳ Dia 09 |
@@ -333,7 +333,7 @@ plutus-ledger/
 │   ├── adr/                        # ✅ decisões de arquitetura
 │   └── assets/                     # ✅ banner e imagens
 ├── src/
-│   ├── Plutus.Domain/              # ✅ Account, Money, AccountNumber
+│   ├── Plutus.Domain/              # ✅ Account, TransferService, Money, Result, eventos
 │   ├── Plutus.Application/         # ✅ projeto · ⏳ Dia 04 — casos de uso
 │   ├── Plutus.Infrastructure/      # ✅ projeto · ⏳ Dia 05 — Dapper + SQLite
 │   └── Plutus.Cli/                 # ✅ banner · ⏳ Dia 07 — Spectre.Console
@@ -356,7 +356,7 @@ Mantenho aqui um checklist vivo do que ainda vou incrementar neste repositório.
 
 **Projeto**
 - [x] `Money`, `AccountNumber` e agregado `Account` com testes (Dia 02)
-- [ ] Depósito, saque, transferência, Result pattern e domain events (Dia 03)
+- [x] Depósito, saque, transferência, Result pattern e domain events (Dia 03)
 - [ ] Casos de uso, DI e Options pattern (Dia 04)
 - [ ] Persistência com Dapper + SQLite e migrations (Dia 05)
 - [ ] Extratos com LINQ (Dia 06)

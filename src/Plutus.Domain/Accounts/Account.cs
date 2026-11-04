@@ -12,12 +12,16 @@ namespace Plutus.Domain.Accounts;
 /// <item>o limite nunca é negativo e usa a mesma moeda da conta;</item>
 /// <item>conta encerrada não muda mais; só é encerrada com saldo zero.</item>
 /// </list>
-/// Depósitos, saques e transferências chegam no Dia 03, já respeitando essas invariantes.
+/// Regras de configuração quebradas lançam <see cref="DomainException"/>. Depósitos e saques
+/// devolvem <see cref="Result"/>, porque recusar uma operação faz parte do negócio.
 /// </remarks>
 public sealed class Account
 {
     private const int HolderNameMinLength = 3;
     private const int HolderNameMaxLength = 120;
+
+    private readonly List<Transaction> _transactions = [];
+    private readonly List<IDomainEvent> _domainEvents = [];
 
     private Account(AccountId id, AccountNumber number, string holderName, Money overdraftLimit)
     {
@@ -46,6 +50,10 @@ public sealed class Account
     /// <summary>Quanto o titular ainda pode usar: saldo + limite.</summary>
     public Money AvailableBalance => Balance + OverdraftLimit;
 
+    public IReadOnlyList<Transaction> Transactions => _transactions.AsReadOnly();
+
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
     public static Account Open(AccountNumber number, string holderName, Money overdraftLimit)
     {
         if (string.IsNullOrEmpty(number.Value))
@@ -56,6 +64,67 @@ public sealed class Account
         EnsureValidLimit(overdraftLimit);
         return new Account(AccountId.New(), number, ValidateHolderName(holderName), overdraftLimit);
     }
+
+    public Result Deposit(Money amount, DateTimeOffset occurredAt)
+    {
+        var canMove = CanMove(amount);
+        if (canMove.IsFailure)
+        {
+            return canMove;
+        }
+
+        Credit(amount, TransactionType.Deposit, occurredAt, counterpartyId: null);
+        return Result.Success();
+    }
+
+    public Result Withdraw(Money amount, DateTimeOffset occurredAt) =>
+        Debit(amount, TransactionType.Withdrawal, occurredAt, counterpartyId: null);
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
+
+    /// <summary>Verifica se a conta pode movimentar o valor: conta ativa, valor positivo e mesma moeda.</summary>
+    internal Result CanMove(Money amount)
+    {
+        if (Status != AccountStatus.Active)
+        {
+            return Result.Failure(AccountErrors.NotActive(Number, Status));
+        }
+
+        if (amount.Currency != Currency)
+        {
+            return Result.Failure(AccountErrors.CurrencyMismatch(Currency, amount.Currency));
+        }
+
+        return amount.IsPositive ? Result.Success() : Result.Failure(AccountErrors.InvalidAmount(amount));
+    }
+
+    internal Result Debit(Money amount, TransactionType type, DateTimeOffset occurredAt, AccountId? counterpartyId)
+    {
+        var canMove = CanMove(amount);
+        if (canMove.IsFailure)
+        {
+            return canMove;
+        }
+
+        if (amount > AvailableBalance)
+        {
+            Raise(new WithdrawalRejected(Id, amount, AvailableBalance, occurredAt));
+            return Result.Failure(AccountErrors.InsufficientFunds(Number, AvailableBalance, amount));
+        }
+
+        Balance -= amount;
+        Record(type, amount, occurredAt, counterpartyId);
+        return Result.Success();
+    }
+
+    /// <summary>Quem chama já validou com <see cref="CanMove"/>; um crédito válido nunca falha.</summary>
+    internal void Credit(Money amount, TransactionType type, DateTimeOffset occurredAt, AccountId? counterpartyId)
+    {
+        Balance += amount;
+        Record(type, amount, occurredAt, counterpartyId);
+    }
+
+    internal void Raise(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
 
     public void ChangeOverdraftLimit(Money newLimit)
     {
@@ -107,6 +176,9 @@ public sealed class Account
 
         Status = AccountStatus.Closed;
     }
+
+    private void Record(TransactionType type, Money amount, DateTimeOffset occurredAt, AccountId? counterpartyId) =>
+        _transactions.Add(new Transaction(Guid.CreateVersion7(), type, amount, Balance, occurredAt, counterpartyId));
 
     private void EnsureNotClosed()
     {
