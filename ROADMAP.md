@@ -17,9 +17,9 @@
 - **Conceitos:** igualdade por valor, agregado como fronteira de consistência
 
 ### Dia 03 — Operações e eventos de domínio
-- [ ] `Deposit`, `Withdraw` e `TransferService` (domain service)
-- [ ] **Result pattern** (`Result<T>`) para falhas de negócio
-- [ ] Domain events (`MoneyTransferred`, `WithdrawalRejected`)
+- [x] `Deposit`, `Withdraw` e `TransferService` (domain service)
+- [x] **Result pattern** (`Result<T>`) para falhas de negócio
+- [x] Domain events (`MoneyTransferred`, `WithdrawalRejected`)
 - **Conceitos:** exceção vs. resultado, linguagem ubíqua
 
 ### Dia 04 — Camada de aplicação
