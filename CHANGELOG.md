@@ -20,3 +20,7 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Serviço de domínio `TransferService`, que valida o crédito antes de debitar a origem.
 - Eventos de domínio `MoneyTransferred` e `WithdrawalRejected`.
 - 17 testes novos.
+- Casos de uso `OpenAccount`, `DepositMoney`, `WithdrawMoney`, `TransferMoney` e `GetStatement`.
+- Portas `IAccountRepository` e `IUnitOfWork`; a implementação com Dapper entra no Dia 05.
+- Injeção de dependência com `AddApplication` e configuração validada em `LedgerOptions`.
+- Projeto `Plutus.Application.Tests`, com 16 testes usando NSubstitute.

@@ -23,9 +23,9 @@
 - **Conceitos:** exceção vs. resultado, linguagem ubíqua
 
 ### Dia 04 — Camada de aplicação
-- [ ] Casos de uso: abrir conta, depositar, sacar, transferir, consultar extrato
-- [ ] Interfaces `IAccountRepository`, `IUnitOfWork`
-- [ ] DI com `Microsoft.Extensions.DependencyInjection`, Options pattern
+- [x] Casos de uso: abrir conta, depositar, sacar, transferir, consultar extrato
+- [x] Interfaces `IAccountRepository`, `IUnitOfWork`
+- [x] DI com `Microsoft.Extensions.DependencyInjection`, Options pattern
 - **Conceitos:** orquestração vs. regra de negócio, lifetimes (Singleton/Scoped/Transient)
 
 ### Dia 05 — Dapper + SQLite
