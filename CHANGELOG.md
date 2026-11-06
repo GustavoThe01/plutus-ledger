@@ -24,3 +24,7 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Portas `IAccountRepository` e `IUnitOfWork`; a implementação com Dapper entra no Dia 05.
 - Injeção de dependência com `AddApplication` e configuração validada em `LedgerOptions`.
 - Projeto `Plutus.Application.Tests`, com 16 testes usando NSubstitute.
+- Persistência com Dapper e SQLite: `AccountRepository`, SQL escrito à mão e valores em centavos.
+- Migrations em scripts SQL embutidos, aplicadas por `DatabaseMigrator`.
+- `UnitOfWork` com transação explícita: exceções e falhas de negócio desfazem tudo o que foi gravado.
+- Projeto `Plutus.IntegrationTests`, com 11 testes contra um SQLite real.

@@ -29,9 +29,9 @@
 - **Conceitos:** orquestração vs. regra de negócio, lifetimes (Singleton/Scoped/Transient)
 
 ### Dia 05 — Dapper + SQLite
-- [ ] Migrations em scripts SQL embarcados (ou DbUp)
-- [ ] Repositórios assíncronos com Dapper
-- [ ] Transferência dentro de uma única transação
+- [x] Migrations em scripts SQL embarcados (ou DbUp)
+- [x] Repositórios assíncronos com Dapper
+- [x] Transferência dentro de uma única transação
 - **Conceitos:** `async/await`, `IDbTransaction`, mapeamento manual
 
 ## Semana 2 — Consultas, concorrência e entrega

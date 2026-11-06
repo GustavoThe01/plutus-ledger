@@ -65,6 +65,32 @@ public sealed class Account
         return new Account(AccountId.New(), number, ValidateHolderName(holderName), overdraftLimit);
     }
 
+    /// <summary>
+    /// Reconstrói uma conta a partir do banco. A lista de lançamentos começa vazia e guarda só os novos,
+    /// porque o histórico é consultado à parte e nunca regravado.
+    /// </summary>
+    public static Account Restore(
+        AccountId id,
+        AccountNumber number,
+        string holderName,
+        Money balance,
+        Money overdraftLimit,
+        AccountStatus status)
+    {
+        EnsureValidLimit(overdraftLimit);
+
+        if (balance + overdraftLimit < Money.Zero(balance.Currency))
+        {
+            throw new DomainException($"Dados corrompidos na conta {number}: o saldo {balance} passa do limite {overdraftLimit}.");
+        }
+
+        return new Account(id, number, ValidateHolderName(holderName), overdraftLimit)
+        {
+            Balance = balance,
+            Status = status,
+        };
+    }
+
     public Result Deposit(Money amount, DateTimeOffset occurredAt)
     {
         var canMove = CanMove(amount);
