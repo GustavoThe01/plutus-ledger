@@ -15,8 +15,8 @@ transações explícitas com Dapper e concorrência otimista testada sob carga p
 ![Dapper](https://img.shields.io/badge/Dapper-micro_ORM-1f6feb?style=flat-square)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-v3-5C2D91?style=flat-square)
-![Roadmap](https://img.shields.io/badge/roadmap-dia_04_de_10-ca8a04?style=flat-square)
-![Testes](https://img.shields.io/badge/testes-74_passando-15803d?style=flat-square)
+![Roadmap](https://img.shields.io/badge/roadmap-dia_05_de_10-ca8a04?style=flat-square)
+![Testes](https://img.shields.io/badge/testes-85_passando-15803d?style=flat-square)
 
 </div>
 
@@ -270,7 +270,7 @@ sequenceDiagram
 
 | Semana | Dias | Tema | Progresso |
 |---|---|---|---|
-| 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨🟨🟨🟨⬜ |
+| 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨🟨🟨🟨🟨 |
 | 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | ⬜⬜⬜⬜⬜ |
 
 Detalhes no [ROADMAP.md](ROADMAP.md) · Mudanças no [CHANGELOG.md](CHANGELOG.md).
@@ -319,7 +319,7 @@ Os testes usam **xUnit v3** sobre o **Microsoft.Testing.Platform**, o novo execu
 |---|---|---|
 | `Plutus.Domain.Tests` | Unitários do domínio + regra de camadas | ✅ 58 testes (Account, TransferService, Money, AccountNumber, camadas) |
 | `Plutus.Application.Tests` | Casos de uso com NSubstitute, DI e Options | ✅ 16 testes |
-| `Plutus.IntegrationTests` | Dapper + SQLite em memória, concorrência | ⏳ Dias 08–09 |
+| `Plutus.IntegrationTests` | Dapper + SQLite em memória, com as migrations reais | ✅ 11 testes · ⏳ concorrência no Dia 08 |
 | Testes de arquitetura | NetArchTest | ⏳ Dia 09 |
 
 ---
@@ -335,11 +335,12 @@ plutus-ledger/
 ├── src/
 │   ├── Plutus.Domain/              # ✅ Account, TransferService, Money, Result, eventos
 │   ├── Plutus.Application/         # ✅ casos de uso, portas, DI e Options
-│   ├── Plutus.Infrastructure/      # ✅ projeto · ⏳ Dia 05 — Dapper + SQLite
+│   ├── Plutus.Infrastructure/      # ✅ Dapper, migrations e transações
 │   └── Plutus.Cli/                 # ✅ banner · ⏳ Dia 07 — Spectre.Console
 ├── tests/
 │   ├── Plutus.Domain.Tests/        # ✅ testes do domínio e de arquitetura
-│   └── Plutus.Application.Tests/   # ✅ testes dos casos de uso
+│   ├── Plutus.Application.Tests/   # ✅ testes dos casos de uso
+│   └── Plutus.IntegrationTests/    # ✅ testes com SQLite real
 ├── Plutus.slnx
 ├── Directory.Build.props           # ✅ Nullable, warnings como erro
 ├── Directory.Packages.props        # ✅ versões centralizadas
@@ -359,7 +360,7 @@ Mantenho aqui um checklist vivo do que ainda vou incrementar neste repositório.
 - [x] `Money`, `AccountNumber` e agregado `Account` com testes (Dia 02)
 - [x] Depósito, saque, transferência, Result pattern e domain events (Dia 03)
 - [x] Casos de uso, DI e Options pattern (Dia 04)
-- [ ] Persistência com Dapper + SQLite e migrations (Dia 05)
+- [x] Persistência com Dapper + SQLite e migrations (Dia 05)
 - [ ] Extratos com LINQ (Dia 06)
 - [ ] Console com Spectre.Console e Generic Host (Dia 07)
 - [ ] Concorrência otimista com teste paralelo (Dia 08)
