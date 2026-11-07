@@ -28,3 +28,8 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Migrations em scripts SQL embutidos, aplicadas por `DatabaseMigrator`.
 - `UnitOfWork` com transação explícita: exceções e falhas de negócio desfazem tudo o que foi gravado.
 - Projeto `Plutus.IntegrationTests`, com 11 testes contra um SQLite real.
+- Extrato paginado (`Page<T>`), com descrição de cada lançamento e valores com sinal: entradas positivas, saídas negativas.
+- Caso de uso `GetMonthlySummary`: entradas, saídas, saldo do mês e saldo de fechamento, agrupados com LINQ.
+- `LedgerOptions.MaxPageSize` limita o tamanho da página do extrato.
+- README com a discussão de `IEnumerable` vs `IQueryable` e execução adiada.
+- 7 testes novos.

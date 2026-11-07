@@ -184,12 +184,14 @@ public sealed class LedgerPersistenceTests : IAsyncLifetime
         await DepositAsync(number, 20m);
         var now = DateTimeOffset.UtcNow;
 
-        var inside = await InScope(s => s.GetRequiredService<GetStatement>().HandleAsync(number, now.AddMinutes(-5), now.AddMinutes(5), _token));
-        var before = await InScope(s => s.GetRequiredService<GetStatement>().HandleAsync(number, now.AddDays(-2), now.AddDays(-1), _token));
+        var inside = await InScope(s => s.GetRequiredService<GetStatement>().HandleAsync(number, now.AddMinutes(-5), now.AddMinutes(5), cancellationToken: _token));
+        var before = await InScope(s => s.GetRequiredService<GetStatement>().HandleAsync(number, now.AddDays(-2), now.AddDays(-1), cancellationToken: _token));
+        var months = await InScope(s => s.GetRequiredService<GetMonthlySummary>().HandleAsync(number, now.AddMinutes(-5), now.AddMinutes(5), _token));
 
-        Assert.Equal([Brl(10m), Brl(30m)], inside.Value.Select(t => t.BalanceAfter));
-        Assert.Equal(TransactionType.Deposit, inside.Value[0].Type);
-        Assert.Empty(before.Value);
+        Assert.Equal([10m, 30m], inside.Value.Items.Select(line => line.BalanceAfter));
+        Assert.Equal("Depósito", inside.Value.Items[0].Description);
+        Assert.Empty(before.Value.Items);
+        Assert.Equal(30m, Assert.Single(months.Value).Inflows);
     }
 
     [Fact]

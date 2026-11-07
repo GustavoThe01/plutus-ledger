@@ -174,9 +174,10 @@ public class AccountUseCasesTests
             .Returns(account.Transactions);
         var useCase = new GetStatement(_accounts, _options);
 
-        var result = await useCase.HandleAsync(account.Number.Value, Now.AddDays(-7), Now, _token);
+        var result = await useCase.HandleAsync(account.Number.Value, Now.AddDays(-7), Now, cancellationToken: _token);
 
-        Assert.Single(result.Value);
+        var line = Assert.Single(result.Value.Items);
+        Assert.Equal("Depósito", line.Description);
     }
 
     [Fact]
@@ -185,11 +186,13 @@ public class AccountUseCasesTests
         var account = ExistingAccount(1);
         var useCase = new GetStatement(_accounts, _options);
 
-        var inverted = await useCase.HandleAsync(account.Number.Value, Now, Now.AddDays(-1), _token);
-        var tooLong = await useCase.HandleAsync(account.Number.Value, Now.AddDays(-32), Now, _token);
+        var inverted = await useCase.HandleAsync(account.Number.Value, Now, Now.AddDays(-1), cancellationToken: _token);
+        var tooLong = await useCase.HandleAsync(account.Number.Value, Now.AddDays(-32), Now, cancellationToken: _token);
+        var hugePage = await useCase.HandleAsync(account.Number.Value, Now.AddDays(-1), Now, pageSize: 1_000, cancellationToken: _token);
 
         Assert.Equal("application.invalid_input", inverted.Error?.Code);
         Assert.Equal("application.statement_period_too_long", tooLong.Error?.Code);
+        Assert.Equal("application.invalid_input", hugePage.Error?.Code);
     }
 
     [Fact]
@@ -207,6 +210,7 @@ public class AccountUseCasesTests
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<WithdrawMoney>());
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<TransferMoney>());
         Assert.NotNull(scope.ServiceProvider.GetRequiredService<GetStatement>());
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<GetMonthlySummary>());
         Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<TransferMoney>());
     }
 

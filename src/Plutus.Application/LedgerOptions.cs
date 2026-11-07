@@ -13,4 +13,7 @@ public sealed class LedgerOptions
 
     /// <summary>Maior período, em dias, de uma consulta de extrato.</summary>
     public int MaxStatementDays { get; set; } = 366;
+
+    /// <summary>Maior quantidade de linhas por página do extrato.</summary>
+    public int MaxPageSize { get; set; } = 100;
 }

@@ -136,13 +136,56 @@ public sealed class TransferMoney(
     }
 }
 
+/// <summary>Extrato paginado, do lançamento mais antigo para o mais recente.</summary>
 public sealed class GetStatement(IAccountRepository accounts, IOptions<LedgerOptions> options)
 {
-    public async Task<Result<IReadOnlyList<Transaction>>> HandleAsync(
+    public async Task<Result<Page<StatementLine>>> HandleAsync(
+        string accountNumber,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        int pageNumber = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        if (pageNumber < 1 || pageSize < 1 || pageSize > options.Value.MaxPageSize)
+        {
+            return Result<Page<StatementLine>>.Failure(ApplicationErrors.InvalidInput(
+                $"Use página a partir de 1 e tamanho entre 1 e {options.Value.MaxPageSize}."));
+        }
+
+        var period = await StatementPeriod.LoadAsync(accounts, options.Value, accountNumber, from, to, cancellationToken);
+        return period.IsFailure
+            ? Result<Page<StatementLine>>.Failure(period.Error!)
+            : Result<Page<StatementLine>>.Success(
+                StatementReport.Paginate(period.Value.Select(StatementReport.ToLine), pageNumber, pageSize));
+    }
+}
+
+/// <summary>Entradas, saídas e saldo de fechamento de cada mês do período.</summary>
+public sealed class GetMonthlySummary(IAccountRepository accounts, IOptions<LedgerOptions> options)
+{
+    public async Task<Result<IReadOnlyList<MonthlySummary>>> HandleAsync(
         string accountNumber,
         DateTimeOffset from,
         DateTimeOffset to,
         CancellationToken cancellationToken = default)
+    {
+        var period = await StatementPeriod.LoadAsync(accounts, options.Value, accountNumber, from, to, cancellationToken);
+        return period.IsFailure
+            ? Result<IReadOnlyList<MonthlySummary>>.Failure(period.Error!)
+            : Result<IReadOnlyList<MonthlySummary>>.Success(StatementReport.ByMonth(period.Value));
+    }
+}
+
+internal static class StatementPeriod
+{
+    public static async Task<Result<IReadOnlyList<Transaction>>> LoadAsync(
+        IAccountRepository accounts,
+        LedgerOptions options,
+        string accountNumber,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken)
     {
         if (!AccountNumber.TryParse(accountNumber, out var number))
         {
@@ -155,10 +198,9 @@ public sealed class GetStatement(IAccountRepository accounts, IOptions<LedgerOpt
                 ApplicationErrors.InvalidInput("O fim do período não pode ser antes do início."));
         }
 
-        var maximumDays = options.Value.MaxStatementDays;
-        if ((to - from).TotalDays > maximumDays)
+        if ((to - from).TotalDays > options.MaxStatementDays)
         {
-            return Result<IReadOnlyList<Transaction>>.Failure(ApplicationErrors.StatementPeriodTooLong(maximumDays));
+            return Result<IReadOnlyList<Transaction>>.Failure(ApplicationErrors.StatementPeriodTooLong(options.MaxStatementDays));
         }
 
         var account = await accounts.GetByNumberAsync(number, cancellationToken);
