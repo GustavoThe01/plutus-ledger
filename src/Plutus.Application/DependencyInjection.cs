@@ -18,7 +18,8 @@ public static class DependencyInjection
             .Validate(
                 options => options.DefaultCurrency.Length == 3
                     && options.MaxOverdraftLimit >= 0m
-                    && options.MaxStatementDays > 0,
+                    && options.MaxStatementDays > 0
+                    && options.MaxPageSize > 0,
                 "Configuração inválida na seção Ledger.")
             .ValidateOnStart();
 
@@ -27,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<WithdrawMoney>();
         services.AddScoped<TransferMoney>();
         services.AddScoped<GetStatement>();
+        services.AddScoped<GetMonthlySummary>();
 
         return services;
     }

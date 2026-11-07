@@ -37,9 +37,9 @@
 ## Semana 2 — Consultas, concorrência e entrega
 
 ### Dia 06 — LINQ e extratos
-- [ ] Extrato por período, paginado
-- [ ] Agrupamento mensal de entradas/saídas, saldo acumulado
-- [ ] Discutir no README: `IEnumerable` vs `IQueryable`, execução adiada
+- [x] Extrato por período, paginado
+- [x] Agrupamento mensal de entradas/saídas, saldo acumulado
+- [x] Discutir no README: `IEnumerable` vs `IQueryable`, execução adiada
 - **Conceitos:** deferred execution, projeções
 
 ### Dia 07 — Interface de console

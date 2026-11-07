@@ -15,8 +15,8 @@ transações explícitas com Dapper e concorrência otimista testada sob carga p
 ![Dapper](https://img.shields.io/badge/Dapper-micro_ORM-1f6feb?style=flat-square)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-v3-5C2D91?style=flat-square)
-![Roadmap](https://img.shields.io/badge/roadmap-dia_05_de_10-ca8a04?style=flat-square)
-![Testes](https://img.shields.io/badge/testes-85_passando-15803d?style=flat-square)
+![Roadmap](https://img.shields.io/badge/roadmap-dia_06_de_10-ca8a04?style=flat-square)
+![Testes](https://img.shields.io/badge/testes-92_passando-15803d?style=flat-square)
 
 </div>
 
@@ -56,6 +56,7 @@ Um sistema financeiro é o lugar onde **erros custam dinheiro de verdade**. Por 
 - [Arquitetura](#️-arquitetura)
 - [Modelo de domínio](#-modelo-de-domínio)
 - [Como uma transferência acontece](#-como-uma-transferência-acontece)
+- [Extrato com LINQ](#-extrato-com-linq)
 - [Competências demonstradas](#-competências-demonstradas)
 - [Metodologias e decisões](#-metodologias-e-decisões)
 - [Roadmap](#️-roadmap)
@@ -236,6 +237,34 @@ sequenceDiagram
 
 ---
 
+## 📜 Extrato com LINQ
+
+O extrato sai em duas formas: **paginado**, com cada lançamento e o saldo depois dele, e **resumido por mês**,
+com entradas, saídas e saldo de fechamento. As duas consultas estão em
+[`Statement.cs`](src/Plutus.Application/Accounts/Statement.cs) e usam LINQ sobre os lançamentos do período.
+
+```csharp
+transactions
+    .OrderBy(t => t.OccurredAt)
+    .GroupBy(t => t.OccurredAt.ToUniversalTime().ToString("yyyy-MM", CultureInfo.InvariantCulture))
+    .Select(month => new MonthlySummary(month.Key, inflows, outflows, inflows - outflows,
+                                        month.Last().BalanceAfter.Amount, month.Count()))
+    .ToList();
+```
+
+**`IEnumerable` ou `IQueryable`?** Aqui o LINQ roda em memória, sobre `IEnumerable<T>`. O Dapper já trouxe
+os lançamentos do período com um `WHERE` por data, e o agrupamento acontece no C#. Com `IQueryable<T>` e um ORM
+como o EF Core, o mesmo LINQ seria traduzido para SQL e rodaria no banco, mas só com operações que o provedor sabe
+traduzir. Escolhi `IEnumerable` porque o Plutus não usa ORM e o período do extrato já é limitado
+(`MaxStatementDays`). O Bifrost, meu outro projeto em .NET, mostra o lado do `IQueryable` com EF Core.
+
+**Execução adiada.** Um `Where` ou `Select` não roda na hora: ele descreve a consulta, que só executa quando alguém
+percorre o resultado. Se a sequência for percorrida duas vezes, a consulta roda duas vezes. Por isso a paginação
+materializa a fonte uma única vez (`ToList`) antes de contar o total e cortar a página, e existe um teste que
+garante isso.
+
+---
+
 ## 🧠 Competências demonstradas
 
 | Área | Conceitos |
@@ -271,7 +300,7 @@ sequenceDiagram
 | Semana | Dias | Tema | Progresso |
 |---|---|---|---|
 | 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨🟨🟨🟨🟨 |
-| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | ⬜⬜⬜⬜⬜ |
+| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | 🟨⬜⬜⬜⬜ |
 
 Detalhes no [ROADMAP.md](ROADMAP.md) · Mudanças no [CHANGELOG.md](CHANGELOG.md).
 
@@ -318,7 +347,7 @@ Os testes usam **xUnit v3** sobre o **Microsoft.Testing.Platform**, o novo execu
 | Projeto de teste | Tipo | Situação |
 |---|---|---|
 | `Plutus.Domain.Tests` | Unitários do domínio + regra de camadas | ✅ 58 testes (Account, TransferService, Money, AccountNumber, camadas) |
-| `Plutus.Application.Tests` | Casos de uso com NSubstitute, DI e Options | ✅ 16 testes |
+| `Plutus.Application.Tests` | Casos de uso com NSubstitute, DI e Options, extrato com LINQ | ✅ 23 testes |
 | `Plutus.IntegrationTests` | Dapper + SQLite em memória, com as migrations reais | ✅ 11 testes · ⏳ concorrência no Dia 08 |
 | Testes de arquitetura | NetArchTest | ⏳ Dia 09 |
 
@@ -361,7 +390,7 @@ Mantenho aqui um checklist vivo do que ainda vou incrementar neste repositório.
 - [x] Depósito, saque, transferência, Result pattern e domain events (Dia 03)
 - [x] Casos de uso, DI e Options pattern (Dia 04)
 - [x] Persistência com Dapper + SQLite e migrations (Dia 05)
-- [ ] Extratos com LINQ (Dia 06)
+- [x] Extratos com LINQ (Dia 06)
 - [ ] Console com Spectre.Console e Generic Host (Dia 07)
 - [ ] Concorrência otimista com teste paralelo (Dia 08)
 - [ ] Testes de integração, mocks e NetArchTest (Dia 09)
