@@ -9,6 +9,7 @@
     <Project Path="tests/Plutus.Domain.Tests/Plutus.Domain.Tests.csproj" />
     <Project Path="tests/Plutus.Application.Tests/Plutus.Application.Tests.csproj" />
     <Project Path="tests/Plutus.IntegrationTests/Plutus.IntegrationTests.csproj" />
+    <Project Path="tests/Plutus.Cli.Tests/Plutus.Cli.Tests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />

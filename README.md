@@ -15,8 +15,8 @@ transações explícitas com Dapper e concorrência otimista testada sob carga p
 ![Dapper](https://img.shields.io/badge/Dapper-micro_ORM-1f6feb?style=flat-square)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-v3-5C2D91?style=flat-square)
-![Roadmap](https://img.shields.io/badge/roadmap-dia_06_de_10-ca8a04?style=flat-square)
-![Testes](https://img.shields.io/badge/testes-92_passando-15803d?style=flat-square)
+![Roadmap](https://img.shields.io/badge/roadmap-dia_07_de_10-ca8a04?style=flat-square)
+![Testes](https://img.shields.io/badge/testes-98_passando-15803d?style=flat-square)
 
 </div>
 
@@ -300,7 +300,7 @@ garante isso.
 | Semana | Dias | Tema | Progresso |
 |---|---|---|---|
 | 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨🟨🟨🟨🟨 |
-| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | 🟨⬜⬜⬜⬜ |
+| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | 🟨🟨⬜⬜⬜ |
 
 Detalhes no [ROADMAP.md](ROADMAP.md) · Mudanças no [CHANGELOG.md](CHANGELOG.md).
 
@@ -330,11 +330,19 @@ Rodar os testes:
 dotnet test
 ```
 
-Executar o console:
+Executar o console (cria o `plutus.db` e aplica as migrations na primeira vez):
 
 ```bash
 dotnet run --project src/Plutus.Cli
 ```
+
+Em desenvolvimento, o banco é outro (`plutus-dev.db`) e o log mostra cada operação. Os dois vêm de [`appsettings.Development.json`](src/Plutus.Cli/appsettings.Development.json):
+
+```bash
+dotnet run --project src/Plutus.Cli --environment Development
+```
+
+O menu tem abrir conta, consultar saldo, depositar, sacar, transferir (com confirmação), extrato paginado e resumo mensal. Valores aceitam vírgula, como `150,50`.
 
 > 📦 A partir do Dia 10 haverá um executável único (single-file) na aba *Releases*.
 
@@ -349,6 +357,7 @@ Os testes usam **xUnit v3** sobre o **Microsoft.Testing.Platform**, o novo execu
 | `Plutus.Domain.Tests` | Unitários do domínio + regra de camadas | ✅ 58 testes (Account, TransferService, Money, AccountNumber, camadas) |
 | `Plutus.Application.Tests` | Casos de uso com NSubstitute, DI e Options, extrato com LINQ | ✅ 23 testes |
 | `Plutus.IntegrationTests` | Dapper + SQLite em memória, com as migrations reais | ✅ 11 testes · ⏳ concorrência no Dia 08 |
+| `Plutus.Cli.Tests` | Console com teclado simulado (`Spectre.Console.Testing`) e SQLite real | ✅ 6 testes |
 | Testes de arquitetura | NetArchTest | ⏳ Dia 09 |
 
 ---
@@ -365,11 +374,12 @@ plutus-ledger/
 │   ├── Plutus.Domain/              # ✅ Account, TransferService, Money, Result, eventos
 │   ├── Plutus.Application/         # ✅ casos de uso, portas, DI e Options
 │   ├── Plutus.Infrastructure/      # ✅ Dapper, migrations e transações
-│   └── Plutus.Cli/                 # ✅ banner · ⏳ Dia 07 — Spectre.Console
+│   └── Plutus.Cli/                 # ✅ Generic Host, Spectre.Console e appsettings por ambiente
 ├── tests/
 │   ├── Plutus.Domain.Tests/        # ✅ testes do domínio e de arquitetura
 │   ├── Plutus.Application.Tests/   # ✅ testes dos casos de uso
-│   └── Plutus.IntegrationTests/    # ✅ testes com SQLite real
+│   ├── Plutus.IntegrationTests/    # ✅ testes com SQLite real
+│   └── Plutus.Cli.Tests/           # ✅ testes do console
 ├── Plutus.slnx
 ├── Directory.Build.props           # ✅ Nullable, warnings como erro
 ├── Directory.Packages.props        # ✅ versões centralizadas
@@ -391,7 +401,7 @@ Mantenho aqui um checklist vivo do que ainda vou incrementar neste repositório.
 - [x] Casos de uso, DI e Options pattern (Dia 04)
 - [x] Persistência com Dapper + SQLite e migrations (Dia 05)
 - [x] Extratos com LINQ (Dia 06)
-- [ ] Console com Spectre.Console e Generic Host (Dia 07)
+- [x] Console com Spectre.Console e Generic Host (Dia 07)
 - [ ] Concorrência otimista com teste paralelo (Dia 08)
 - [ ] Testes de integração, mocks e NetArchTest (Dia 09)
 - [ ] Tarifas com Strategy, publish single-file e release `v1.0.0` (Dia 10)

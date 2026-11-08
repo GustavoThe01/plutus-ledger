@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<DepositMoney>();
         services.AddScoped<WithdrawMoney>();
         services.AddScoped<TransferMoney>();
+        services.AddScoped<GetAccount>();
         services.AddScoped<GetStatement>();
         services.AddScoped<GetMonthlySummary>();
 

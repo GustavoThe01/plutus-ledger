@@ -43,8 +43,8 @@
 - **Conceitos:** deferred execution, projeções
 
 ### Dia 07 — Interface de console
-- [ ] Generic Host + Spectre.Console (tabelas, prompts, cores)
-- [ ] Logging com `ILogger` e configuração via `appsettings.json`
+- [x] Generic Host + Spectre.Console (tabelas, prompts, cores)
+- [x] Logging com `ILogger` e configuração via `appsettings.json`
 - **Conceitos:** composition root, configuração por ambiente
 
 ### Dia 08 — Concorrência
