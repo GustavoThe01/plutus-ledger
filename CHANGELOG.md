@@ -33,3 +33,7 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - `LedgerOptions.MaxPageSize` limita o tamanho da página do extrato.
 - README com a discussão de `IEnumerable` vs `IQueryable` e execução adiada.
 - 7 testes novos.
+- Interface de console com Spectre.Console: menu, tabelas, painéis, cores e confirmação antes de transferir.
+- Generic Host como composition root: configuração em `appsettings.json` e `appsettings.{Ambiente}.json`, DI e `ILogger`.
+- Caso de uso `GetAccount` para consultar saldo, limite e disponível.
+- Projeto `Plutus.Cli.Tests`, com 6 testes que simulam o teclado e rodam contra um SQLite real.
