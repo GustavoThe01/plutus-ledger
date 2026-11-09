@@ -12,7 +12,10 @@ public interface IAccountRepository
 
     Task AddAsync(Account account, CancellationToken cancellationToken);
 
-    /// <summary>Grava o saldo, a situação e os lançamentos novos da conta.</summary>
+    /// <summary>
+    /// Grava o saldo, a situação e os lançamentos novos da conta, se a versão no banco ainda for a lida.
+    /// Caso contrário, lança <see cref="ConcurrencyConflictException"/>.
+    /// </summary>
     Task UpdateAsync(Account account, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<Transaction>> GetTransactionsAsync(
@@ -20,6 +23,26 @@ public interface IAccountRepository
         DateTimeOffset from,
         DateTimeOffset to,
         CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Outra operação alterou a conta entre a leitura e a gravação. Nada foi gravado, e a operação pode ser repetida.
+/// </summary>
+public sealed class ConcurrencyConflictException : Exception
+{
+    public ConcurrencyConflictException(string message)
+        : base(message)
+    {
+    }
+
+    public ConcurrencyConflictException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+
+    public ConcurrencyConflictException()
+    {
+    }
 }
 
 /// <summary>Fronteira da transação de banco: ou tudo o que <c>work</c> gravar é confirmado, ou nada é.</summary>
