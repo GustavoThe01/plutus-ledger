@@ -12,7 +12,7 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
 {
     private const string AccountColumns = """
         id AS Id, number AS Number, holder_name AS HolderName, balance_cents AS BalanceCents,
-        overdraft_limit_cents AS OverdraftLimitCents, currency AS Currency, status AS Status
+        overdraft_limit_cents AS OverdraftLimitCents, currency AS Currency, status AS Status, version AS Version
         """;
 
     public async Task<Account?> GetByNumberAsync(AccountNumber number, CancellationToken cancellationToken)
@@ -52,14 +52,24 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
     public async Task UpdateAsync(Account account, CancellationToken cancellationToken)
     {
         var connection = await session.GetConnectionAsync(cancellationToken);
-        await connection.ExecuteAsync(Command(
+
+        // Concorrência otimista: só grava se ninguém mudou a conta desde a leitura.
+        // Zero linhas afetadas quer dizer que a versão no banco já é outra.
+        var updated = await connection.ExecuteAsync(Command(
             """
             UPDATE account
-            SET balance_cents = @BalanceCents, overdraft_limit_cents = @OverdraftLimitCents, status = @Status
-            WHERE id = @Id
+            SET balance_cents = @BalanceCents, overdraft_limit_cents = @OverdraftLimitCents, status = @Status,
+                version = version + 1
+            WHERE id = @Id AND version = @Version
             """,
             AccountRow.FromDomain(account),
             cancellationToken));
+
+        if (updated == 0)
+        {
+            throw new ConcurrencyConflictException(
+                $"A conta {account.Number} mudou depois de ser lida (versão {account.Version}).");
+        }
 
         await InsertTransactionsAsync(account, cancellationToken);
     }
@@ -131,6 +141,8 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
 
         public string Status { get; init; } = string.Empty;
 
+        public long Version { get; init; }
+
         public static AccountRow FromDomain(Account account) => new()
         {
             Id = account.Id.ToString(),
@@ -140,6 +152,7 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
             OverdraftLimitCents = PersistenceFormat.Cents(account.OverdraftLimit),
             Currency = account.Currency,
             Status = account.Status.ToString(),
+            Version = account.Version,
         };
 
         public Account ToDomain() => Account.Restore(
@@ -148,7 +161,8 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
             HolderName,
             PersistenceFormat.Money(BalanceCents, Currency),
             PersistenceFormat.Money(OverdraftLimitCents, Currency),
-            Enum.Parse<AccountStatus>(Status));
+            Enum.Parse<AccountStatus>(Status),
+            checked((int)Version));
     }
 
     private sealed class TransactionRow

@@ -15,8 +15,8 @@ transações explícitas com Dapper e concorrência otimista testada sob carga p
 ![Dapper](https://img.shields.io/badge/Dapper-micro_ORM-1f6feb?style=flat-square)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-v3-5C2D91?style=flat-square)
-![Roadmap](https://img.shields.io/badge/roadmap-dia_07_de_10-ca8a04?style=flat-square)
-![Testes](https://img.shields.io/badge/testes-98_passando-15803d?style=flat-square)
+![Roadmap](https://img.shields.io/badge/roadmap-dia_08_de_10-ca8a04?style=flat-square)
+![Testes](https://img.shields.io/badge/testes-102_passando-15803d?style=flat-square)
 
 </div>
 
@@ -75,7 +75,7 @@ Um sistema financeiro é o lugar onde **erros custam dinheiro de verdade**. Por 
 | 💎 Domínio | 🧱 Arquitetura | 🧪 Qualidade | 🗓️ Processo |
 |:---:|:---:|:---:|:---:|
 | **1** agregado (`Account`) | **4** projetos + testes | warnings tratados como **erro** | **10** dias de roadmap |
-| value objects com `record struct` | regra de dependência **testada** | xUnit v3 · Microsoft.Testing.Platform | **1** ADR registrado |
+| value objects com `record struct` | regra de dependência **testada** | xUnit v3 · Microsoft.Testing.Platform | **2** ADRs registrados |
 | domain events + Result pattern | Central Package Management | NetArchTest (planejado) | Conventional Commits |
 
 <sub>Metas para o fim do roadmap. O estado atual está nos badges, na seção <a href="#-testes">Testes</a> e em <a href="#-o-que-ainda-falta">O que ainda falta</a>.</sub>
@@ -214,12 +214,12 @@ sequenceDiagram
     participant DB as SQLite
 
     U->>H: Transferir R$ 100 de A para B
-    H->>R: GetAsync(A), GetAsync(B)
+    H->>UoW: BEGIN IMMEDIATE
+    H->>R: GetByNumberAsync(A), GetByNumberAsync(B)
     R->>DB: SELECT (com Version)
     H->>T: Transfer(A, B, 100)
     alt saldo e status válidos
         T-->>H: Result.Success + MoneyTransferred
-        H->>UoW: BeginTransaction
         H->>R: UpdateAsync(A), UpdateAsync(B)
         R->>DB: UPDATE ... WHERE Id = @Id AND Version = @Version
         alt nenhuma linha afetada (outra operação chegou antes)
@@ -231,9 +231,19 @@ sequenceDiagram
         end
     else regra violada
         T-->>H: Result.Failure (saldo insuficiente / conta bloqueada)
+        UoW->>DB: ROLLBACK
         H-->>U: Mensagem de erro de negócio
     end
 ```
+
+**Concorrência na prática.** No SQLite, o `BEGIN IMMEDIATE` já faz as escritas acontecerem uma de cada vez;
+a coluna `Version` é a garantia que não depende do banco ([ADR 0002](docs/adr/0002-concorrencia.md)). Os testes provam as duas:
+
+- **300 transferências em paralelo** entre três contas com R$ 1.000 cada. Nas rodadas que fiz, de 284 a 299
+  passaram, e as outras foram recusadas por saldo insuficiente. Em todas, o total continuou R$ 3.000,00, e o saldo
+  de cada conta bateu com a soma dos seus lançamentos. Cada rodada levou cerca de 4 s.
+- **Lost update barrado:** uma operação lê a conta, outra deposita R$ 50 e confirma, e a primeira tenta gravar.
+  O `UPDATE` não acha a versão lida e a gravação é recusada; o depósito de R$ 50 continua lá.
 
 ---
 
@@ -292,6 +302,7 @@ garante isso.
 | ADR | Decisão | Status |
 |---|---|---|
 | [0001](docs/adr/0001-dapper-em-vez-de-ef-core.md) | Dapper em vez de EF Core (EF Core fica para o Bifrost, para comparação) | ✅ Aceita |
+| [0002](docs/adr/0002-concorrencia.md) | `BEGIN IMMEDIATE` no SQLite e coluna de versão como garantia | ✅ Aceita |
 
 ---
 
@@ -300,7 +311,7 @@ garante isso.
 | Semana | Dias | Tema | Progresso |
 |---|---|---|---|
 | 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨🟨🟨🟨🟨 |
-| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | 🟨🟨⬜⬜⬜ |
+| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | 🟨🟨🟨⬜⬜ |
 
 Detalhes no [ROADMAP.md](ROADMAP.md) · Mudanças no [CHANGELOG.md](CHANGELOG.md).
 
@@ -356,7 +367,7 @@ Os testes usam **xUnit v3** sobre o **Microsoft.Testing.Platform**, o novo execu
 |---|---|---|
 | `Plutus.Domain.Tests` | Unitários do domínio + regra de camadas | ✅ 58 testes (Account, TransferService, Money, AccountNumber, camadas) |
 | `Plutus.Application.Tests` | Casos de uso com NSubstitute, DI e Options, extrato com LINQ | ✅ 23 testes |
-| `Plutus.IntegrationTests` | Dapper + SQLite em memória, com as migrations reais | ✅ 11 testes · ⏳ concorrência no Dia 08 |
+| `Plutus.IntegrationTests` | Dapper + SQLite (em memória e em arquivo), com as migrations reais e concorrência | ✅ 15 testes |
 | `Plutus.Cli.Tests` | Console com teclado simulado (`Spectre.Console.Testing`) e SQLite real | ✅ 6 testes |
 | Testes de arquitetura | NetArchTest | ⏳ Dia 09 |
 
@@ -402,14 +413,13 @@ Mantenho aqui um checklist vivo do que ainda vou incrementar neste repositório.
 - [x] Persistência com Dapper + SQLite e migrations (Dia 05)
 - [x] Extratos com LINQ (Dia 06)
 - [x] Console com Spectre.Console e Generic Host (Dia 07)
-- [ ] Concorrência otimista com teste paralelo (Dia 08)
+- [x] Concorrência otimista com teste paralelo (Dia 08)
 - [ ] Testes de integração, mocks e NetArchTest (Dia 09)
 - [ ] Tarifas com Strategy, publish single-file e release `v1.0.0` (Dia 10)
 
 **README**
 - [ ] GIF do console em funcionamento (extrato e transferência)
 - [ ] Badge de cobertura de testes
-- [ ] Resultado real do teste de concorrência (quantas transferências paralelas, saldo final)
 - [ ] Atualizar "Em números" e a tabela de testes com valores reais
 - [ ] Definir e adicionar uma licença (`LICENSE`)
 - [ ] Versão em inglês do README

@@ -35,6 +35,11 @@ internal sealed class DbSession(string connectionString) : IAsyncDisposable
 /// Abre a transação com <c>BEGIN IMMEDIATE</c>, o padrão do Microsoft.Data.Sqlite: a escrita fica reservada desde o início,
 /// e duas operações não leem o mesmo saldo para depois disputarem a gravação.
 /// </summary>
+/// <remarks>
+/// No SQLite, isso já serializa as escritas: quem chega depois espera (até o timeout do comando) e lê o saldo atualizado.
+/// A coluna <c>version</c> é a segunda garantia, a que não depende do banco: se uma conta lida fora desta transação
+/// for gravada depois que outra operação a alterou, o UPDATE não acha a versão e a operação é recusada (ADR 0002).
+/// </remarks>
 internal sealed class UnitOfWork(DbSession session) : IUnitOfWork
 {
     public async Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken cancellationToken)

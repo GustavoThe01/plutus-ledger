@@ -37,3 +37,9 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Generic Host como composition root: configuração em `appsettings.json` e `appsettings.{Ambiente}.json`, DI e `ILogger`.
 - Caso de uso `GetAccount` para consultar saldo, limite e disponível.
 - Projeto `Plutus.Cli.Tests`, com 6 testes que simulam o teclado e rodam contra um SQLite real.
+- Coluna `version` na conta (migration `V002`): todo `UPDATE` confere a versão lida e grava a próxima.
+- `ConcurrencyConflictException` e o erro `application.concurrency_conflict`, que desfaz a transação e pede para tentar de novo.
+- Teste com 300 transferências paralelas num SQLite em arquivo, provando que nenhum centavo é criado ou perdido.
+- Teste do lost update: a gravação de uma conta lida antes de outro depósito é recusada.
+- Teste de cancelamento: operação cancelada não grava nada.
+- ADR 0002 — `BEGIN IMMEDIATE` no SQLite e coluna de versão como garantia.

@@ -48,9 +48,9 @@
 - **Conceitos:** composition root, configuração por ambiente
 
 ### Dia 08 — Concorrência
-- [ ] Coluna `Version` e **concorrência otimista** no update de saldo
-- [ ] Teste que dispara transferências paralelas e prova que o saldo fica correto
-- [ ] `CancellationToken` ponta a ponta
+- [x] Coluna `Version` e **concorrência otimista** no update de saldo
+- [x] Teste que dispara transferências paralelas e prova que o saldo fica correto
+- [x] `CancellationToken` ponta a ponta
 - **Conceitos:** lost update, otimista vs. pessimista
 
 ### Dia 09 — Testes avançados

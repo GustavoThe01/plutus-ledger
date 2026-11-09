@@ -45,6 +45,11 @@ public sealed class Account
 
     public AccountStatus Status { get; private set; }
 
+    /// <summary>
+    /// Versão lida do banco. O repositório só grava se a versão no banco ainda for esta (concorrência otimista).
+    /// </summary>
+    public int Version { get; private init; }
+
     public string Currency => Balance.Currency;
 
     /// <summary>Quanto o titular ainda pode usar: saldo + limite.</summary>
@@ -75,9 +80,11 @@ public sealed class Account
         string holderName,
         Money balance,
         Money overdraftLimit,
-        AccountStatus status)
+        AccountStatus status,
+        int version = 0)
     {
         EnsureValidLimit(overdraftLimit);
+        ArgumentOutOfRangeException.ThrowIfNegative(version);
 
         if (balance + overdraftLimit < Money.Zero(balance.Currency))
         {
@@ -88,6 +95,7 @@ public sealed class Account
         {
             Balance = balance,
             Status = status,
+            Version = version,
         };
     }
 

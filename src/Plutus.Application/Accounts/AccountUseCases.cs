@@ -107,32 +107,39 @@ public sealed class TransferMoney(
             return Result.Failure(invalid);
         }
 
-        return await unitOfWork.ExecuteAsync(
-            async token =>
-            {
-                var from = await accounts.GetByNumberAsync(source, token);
-                if (from is null)
+        try
+        {
+            return await unitOfWork.ExecuteAsync(
+                async token =>
                 {
-                    return Result.Failure(ApplicationErrors.AccountNotFound(sourceNumber));
-                }
+                    var from = await accounts.GetByNumberAsync(source, token);
+                    if (from is null)
+                    {
+                        return Result.Failure(ApplicationErrors.AccountNotFound(sourceNumber));
+                    }
 
-                var to = await accounts.GetByNumberAsync(destination, token);
-                if (to is null)
-                {
-                    return Result.Failure(ApplicationErrors.AccountNotFound(destinationNumber));
-                }
+                    var to = await accounts.GetByNumberAsync(destination, token);
+                    if (to is null)
+                    {
+                        return Result.Failure(ApplicationErrors.AccountNotFound(destinationNumber));
+                    }
 
-                var transfer = TransferService.Transfer(from, to, money, clock.GetUtcNow());
-                if (transfer.IsFailure)
-                {
-                    return Result.Failure(transfer.Error!);
-                }
+                    var transfer = TransferService.Transfer(from, to, money, clock.GetUtcNow());
+                    if (transfer.IsFailure)
+                    {
+                        return Result.Failure(transfer.Error!);
+                    }
 
-                await accounts.UpdateAsync(from, token);
-                await accounts.UpdateAsync(to, token);
-                return Result.Success();
-            },
-            cancellationToken);
+                    await accounts.UpdateAsync(from, token);
+                    await accounts.UpdateAsync(to, token);
+                    return Result.Success();
+                },
+                cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return Result.Failure(ApplicationErrors.ConcurrencyConflict());
+        }
     }
 }
 
@@ -235,24 +242,31 @@ internal static class AccountMovement
             return Result.Failure(invalid);
         }
 
-        return await unitOfWork.ExecuteAsync(
-            async token =>
-            {
-                var account = await accounts.GetByNumberAsync(number, token);
-                if (account is null)
+        try
+        {
+            return await unitOfWork.ExecuteAsync(
+                async token =>
                 {
-                    return Result.Failure(ApplicationErrors.AccountNotFound(accountNumber));
-                }
+                    var account = await accounts.GetByNumberAsync(number, token);
+                    if (account is null)
+                    {
+                        return Result.Failure(ApplicationErrors.AccountNotFound(accountNumber));
+                    }
 
-                var result = move(account, money);
-                if (result.IsSuccess)
-                {
-                    await accounts.UpdateAsync(account, token);
-                }
+                    var result = move(account, money);
+                    if (result.IsSuccess)
+                    {
+                        await accounts.UpdateAsync(account, token);
+                    }
 
-                return result;
-            },
-            cancellationToken);
+                    return result;
+                },
+                cancellationToken);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return Result.Failure(ApplicationErrors.ConcurrencyConflict());
+        }
     }
 
     public static bool TryCreateMoney(decimal amount, string currency, out Money money, out Error error)
