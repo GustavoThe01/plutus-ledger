@@ -1,0 +1,8 @@
+<Project>
+  <!-- Herda as regras da raiz (Nullable, warnings como erro...) e acrescenta o que vale para todo projeto de teste. -->
+  <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
+  <ItemGroup>
+    <!-- Cobertura pelo próprio Microsoft.Testing.Platform. Comando no README, seção Testes. -->
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+  </ItemGroup>
+</Project>

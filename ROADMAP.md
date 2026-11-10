@@ -54,9 +54,9 @@
 - **Conceitos:** lost update, otimista vs. pessimista
 
 ### Dia 09 — Testes avançados
-- [ ] Testes de integração com SQLite em memória
-- [ ] Mocks com NSubstitute nos casos de uso
-- [ ] Testes de arquitetura com NetArchTest; cobertura com Microsoft.Testing.Extensions.CodeCoverage
+- [x] Testes de integração com SQLite em memória
+- [x] Mocks com NSubstitute nos casos de uso
+- [x] Testes de arquitetura com NetArchTest; cobertura com Microsoft.Testing.Extensions.CodeCoverage
 - **Conceitos:** pirâmide de testes
 
 ### Dia 10 — Regras extras e release

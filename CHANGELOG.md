@@ -43,3 +43,6 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Teste do lost update: a gravação de uma conta lida antes de outro depósito é recusada.
 - Teste de cancelamento: operação cancelada não grava nada.
 - ADR 0002 — `BEGIN IMMEDIATE` no SQLite e coluna de versão como garantia.
+- Projeto `Plutus.ArchitectureTests` com 7 regras de camada em NetArchTest (fork NetArchTest.eNhancedEdition 1.4.5).
+- Cobertura de código pelo Microsoft.Testing.Platform (`dotnet test --coverage`), ligada em todos os projetos de teste por `tests/Directory.Build.props`.
+- Cobertura medida: 92,4% das linhas, somando os cinco projetos de teste.

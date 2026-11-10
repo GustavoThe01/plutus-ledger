@@ -15,8 +15,8 @@ transações explícitas com Dapper e concorrência otimista testada sob carga p
 ![Dapper](https://img.shields.io/badge/Dapper-micro_ORM-1f6feb?style=flat-square)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-v3-5C2D91?style=flat-square)
-![Roadmap](https://img.shields.io/badge/roadmap-dia_08_de_10-ca8a04?style=flat-square)
-![Testes](https://img.shields.io/badge/testes-102_passando-15803d?style=flat-square)
+![Roadmap](https://img.shields.io/badge/roadmap-dia_09_de_10-ca8a04?style=flat-square)
+![Testes](https://img.shields.io/badge/testes-109_passando-15803d?style=flat-square)
 
 </div>
 
@@ -76,7 +76,7 @@ Um sistema financeiro é o lugar onde **erros custam dinheiro de verdade**. Por 
 |:---:|:---:|:---:|:---:|
 | **1** agregado (`Account`) | **4** projetos + testes | warnings tratados como **erro** | **10** dias de roadmap |
 | value objects com `record struct` | regra de dependência **testada** | xUnit v3 · Microsoft.Testing.Platform | **2** ADRs registrados |
-| domain events + Result pattern | Central Package Management | NetArchTest (planejado) | Conventional Commits |
+| domain events + Result pattern | Central Package Management | NetArchTest · **92%** de cobertura | Conventional Commits |
 
 <sub>Metas para o fim do roadmap. O estado atual está nos badges, na seção <a href="#-testes">Testes</a> e em <a href="#-o-que-ainda-falta">O que ainda falta</a>.</sub>
 
@@ -311,7 +311,7 @@ garante isso.
 | Semana | Dias | Tema | Progresso |
 |---|---|---|---|
 | 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨🟨🟨🟨🟨 |
-| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | 🟨🟨🟨⬜⬜ |
+| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | 🟨🟨🟨🟨⬜ |
 
 Detalhes no [ROADMAP.md](ROADMAP.md) · Mudanças no [CHANGELOG.md](CHANGELOG.md).
 
@@ -369,7 +369,25 @@ Os testes usam **xUnit v3** sobre o **Microsoft.Testing.Platform**, o novo execu
 | `Plutus.Application.Tests` | Casos de uso com NSubstitute, DI e Options, extrato com LINQ | ✅ 23 testes |
 | `Plutus.IntegrationTests` | Dapper + SQLite (em memória e em arquivo), com as migrations reais e concorrência | ✅ 15 testes |
 | `Plutus.Cli.Tests` | Console com teclado simulado (`Spectre.Console.Testing`) e SQLite real | ✅ 6 testes |
-| Testes de arquitetura | NetArchTest | ⏳ Dia 09 |
+| `Plutus.ArchitectureTests` | Regras de camada com NetArchTest (fork mantido: NetArchTest.eNhancedEdition) | ✅ 7 testes |
+
+As regras de arquitetura viram testes: o domínio não conhece Dapper nem DI, a aplicação só fala com o banco pelas portas,
+repositório e unidade de trabalho são internos, e só o console conhece o Spectre.Console. Usei o fork
+NetArchTest.eNhancedEdition porque o pacote original não recebe atualização desde 2021.
+
+**Cobertura de linhas**, somando os cinco projetos de teste (medi com Microsoft.Testing.Extensions.CodeCoverage):
+
+| Projeto | Cobertura |
+|---|---:|
+| Plutus.Domain | 95,2% |
+| Plutus.Application | 90,1% |
+| Plutus.Infrastructure | 99,5% |
+| Plutus.Cli | 85,1% |
+| **Total** | **92,4%** |
+
+```bash
+dotnet test --coverage --coverage-output-format cobertura
+```
 
 ---
 
@@ -414,7 +432,7 @@ Mantenho aqui um checklist vivo do que ainda vou incrementar neste repositório.
 - [x] Extratos com LINQ (Dia 06)
 - [x] Console com Spectre.Console e Generic Host (Dia 07)
 - [x] Concorrência otimista com teste paralelo (Dia 08)
-- [ ] Testes de integração, mocks e NetArchTest (Dia 09)
+- [x] Testes de integração, mocks, NetArchTest e cobertura (Dia 09)
 - [ ] Tarifas com Strategy, publish single-file e release `v1.0.0` (Dia 10)
 
 **README**
