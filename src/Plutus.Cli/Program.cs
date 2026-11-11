@@ -13,7 +13,13 @@ using Spectre.Console;
 // injeção de dependência e logging, os mesmos de uma API ASP.NET Core.
 Console.OutputEncoding = Encoding.UTF8;
 
-var builder = Host.CreateApplicationBuilder(args);
+// A configuração é lida da pasta do executável, e não da pasta de onde ele foi chamado:
+// assim o plutus.exe publicado funciona de qualquer lugar, com o appsettings.json ao lado dele.
+var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory,
+});
 
 var connectionString = builder.Configuration.GetConnectionString("Plutus")
     ?? throw new InvalidOperationException("Configure ConnectionStrings:Plutus no appsettings.json.");
@@ -35,5 +41,14 @@ if (applied.Count > 0)
     AnsiConsole.MarkupLineInterpolated($"[grey]Migrations aplicadas: {string.Join(", ", applied)}[/]");
 }
 
+// O menu usa as setas do teclado; com a entrada redirecionada não há como escolher uma opção.
+if (!AnsiConsole.Profile.Capabilities.Interactive)
+{
+    AnsiConsole.MarkupLine("[red]O Plutus precisa de um terminal interativo (a entrada não pode vir de um arquivo ou pipe).[/]");
+    await host.StopAsync();
+    return 1;
+}
+
 await host.Services.GetRequiredService<LedgerConsole>().RunAsync(lifetime.ApplicationStopping);
 await host.StopAsync();
+return 0;

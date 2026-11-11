@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Plutus.Application.Accounts;
+using Plutus.Domain.Accounts;
 using Plutus.Domain.Common;
 using Spectre.Console;
 
@@ -30,6 +31,7 @@ public sealed partial class LedgerConsole(
         Transfer,
         Statement,
         MonthlySummary,
+        CloseMonth,
         Exit,
     }
 
@@ -89,15 +91,24 @@ public sealed partial class LedgerConsole(
             case MenuOption.MonthlySummary:
                 await MonthlySummaryAsync(services.GetRequiredService<GetMonthlySummary>(), cancellationToken);
                 break;
+            case MenuOption.CloseMonth:
+                await CloseMonthAsync(services.GetRequiredService<CloseMonth>(), cancellationToken);
+                break;
         }
     }
 
     private async Task OpenAccountAsync(OpenAccount openAccount, CancellationToken cancellationToken)
     {
+        var type = console.Prompt(new SelectionPrompt<AccountType>()
+            .Title("Tipo de conta:")
+            .AddChoices(AccountType.Checking, AccountType.Savings)
+            .UseConverter(TypeName));
         var holder = console.Prompt(new TextPrompt<string>("Nome do titular:"));
-        var limit = AskAmount("Limite de cheque especial", allowZero: true);
 
-        var result = await openAccount.HandleAsync(holder, limit, cancellationToken);
+        // Poupança não tem cheque especial; nem pergunto.
+        var limit = type == AccountType.Checking ? AskAmount("Limite de cheque especial", allowZero: true) : 0m;
+
+        var result = await openAccount.HandleAsync(holder, limit, type, cancellationToken);
         if (Report(result, "Abertura de conta"))
         {
             LogAccountOpened(logger, result.Value.Value);
@@ -116,6 +127,7 @@ public sealed partial class LedgerConsole(
         var account = result.Value;
         var grid = new Grid().AddColumn().AddColumn(new GridColumn().RightAligned());
         grid.AddRow("Titular", Markup.Escape(account.HolderName));
+        grid.AddRow("Tipo", TypeName(account.Type));
         grid.AddRow("Situação", Status(account.Status));
         grid.AddRow("Saldo", Signed(account.Balance));
         grid.AddRow("Limite", Format(account.OverdraftLimit));
@@ -248,6 +260,50 @@ public sealed partial class LedgerConsole(
         console.Write(table);
     }
 
+    private async Task CloseMonthAsync(CloseMonth closeMonth, CancellationToken cancellationToken)
+    {
+        var previous = clock.GetUtcNow().AddMonths(-1);
+        var answer = console.Prompt(new TextPrompt<string>("Mês a fechar (mm/aaaa):")
+            .DefaultValue(previous.ToString("MM/yyyy", PtBr))
+            .Validate(text => DateTime.TryParseExact(text, "MM/yyyy", PtBr, DateTimeStyles.None, out _)
+                ? ValidationResult.Success()
+                : ValidationResult.Error("[red]Use o formato mm/aaaa, como 10/2026.[/]")));
+        var month = DateTime.ParseExact(answer, "MM/yyyy", PtBr);
+
+        var result = await closeMonth.HandleAsync(month.Year, month.Month, cancellationToken);
+        if (!Report(result, "Fechamento do mês"))
+        {
+            return;
+        }
+
+        if (result.Value.Lines.Count == 0)
+        {
+            console.MarkupLine("[grey]Nenhuma conta ativa para fechar.[/]");
+            return;
+        }
+
+        var table = new Table().Border(TableBorder.Rounded).BorderColor(Color.Grey)
+            .Title($"Fechamento de {result.Value.Month}")
+            .AddColumn("Conta")
+            .AddColumn("Tipo")
+            .AddColumn("Resultado")
+            .AddColumn(new TableColumn("Valor").RightAligned())
+            .AddColumn("Detalhe");
+
+        foreach (var line in result.Value.Lines)
+        {
+            table.AddRow(
+                line.Number,
+                line.Type is { } type ? TypeName(type) : "-",
+                Outcome(line.Outcome),
+                line.Amount == 0m ? "-" : Format(line.Amount),
+                Markup.Escape(line.Detail));
+        }
+
+        console.Write(table);
+        LogMonthClosed(logger, result.Value.Month, result.Value.Lines.Count);
+    }
+
     /// <summary>Mostra a falha, se houver. A mensagem vem pronta do caso de uso; o código vai para o log.</summary>
     private bool Report(Result result, string operation)
     {
@@ -287,6 +343,21 @@ public sealed partial class LedgerConsole(
         _ => "[grey]Encerrada[/]",
     };
 
+    private static string TypeName(AccountType type) => type switch
+    {
+        AccountType.Savings => "Poupança",
+        _ => "Conta corrente",
+    };
+
+    private static string Outcome(ClosingOutcome outcome) => outcome switch
+    {
+        ClosingOutcome.Charged => "[red]Tarifa cobrada[/]",
+        ClosingOutcome.Credited => "[green]Rendimento creditado[/]",
+        ClosingOutcome.NothingToPost => "[grey]Nada a lançar[/]",
+        ClosingOutcome.AlreadyClosed => "[grey]Já fechado[/]",
+        _ => "[yellow]Recusado[/]",
+    };
+
     private static string Label(MenuOption option) => option switch
     {
         MenuOption.OpenAccount => "Abrir conta",
@@ -296,6 +367,7 @@ public sealed partial class LedgerConsole(
         MenuOption.Transfer => "Transferir",
         MenuOption.Statement => "Extrato",
         MenuOption.MonthlySummary => "Resumo mensal",
+        MenuOption.CloseMonth => "Fechar o mês",
         _ => "Sair",
     };
 
@@ -304,6 +376,9 @@ public sealed partial class LedgerConsole(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{Operation} de {Amount} em {Accounts}")]
     private static partial void LogMoneyMoved(ILogger logger, string operation, decimal amount, string accounts);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Mês {Month} fechado para {Accounts} contas")]
+    private static partial void LogMonthClosed(ILogger logger, string month, int accounts);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{Operation} recusada: {Code}")]
     private static partial void LogOperationRejected(ILogger logger, string operation, string code);

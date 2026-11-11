@@ -23,11 +23,12 @@ public sealed class Account
     private readonly List<Transaction> _transactions = [];
     private readonly List<IDomainEvent> _domainEvents = [];
 
-    private Account(AccountId id, AccountNumber number, string holderName, Money overdraftLimit)
+    private Account(AccountId id, AccountNumber number, string holderName, Money overdraftLimit, AccountType type)
     {
         Id = id;
         Number = number;
         HolderName = holderName;
+        Type = type;
         Balance = Money.Zero(overdraftLimit.Currency);
         OverdraftLimit = overdraftLimit;
         Status = AccountStatus.Active;
@@ -38,6 +39,8 @@ public sealed class Account
     public AccountNumber Number { get; }
 
     public string HolderName { get; }
+
+    public AccountType Type { get; }
 
     public Money Balance { get; private set; }
 
@@ -59,7 +62,7 @@ public sealed class Account
 
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
-    public static Account Open(AccountNumber number, string holderName, Money overdraftLimit)
+    public static Account Open(AccountNumber number, string holderName, Money overdraftLimit, AccountType type = AccountType.Checking)
     {
         if (string.IsNullOrEmpty(number.Value))
         {
@@ -67,7 +70,8 @@ public sealed class Account
         }
 
         EnsureValidLimit(overdraftLimit);
-        return new Account(AccountId.New(), number, ValidateHolderName(holderName), overdraftLimit);
+        EnsureValidType(type, overdraftLimit);
+        return new Account(AccountId.New(), number, ValidateHolderName(holderName), overdraftLimit, type);
     }
 
     /// <summary>
@@ -81,9 +85,11 @@ public sealed class Account
         Money balance,
         Money overdraftLimit,
         AccountStatus status,
-        int version = 0)
+        int version = 0,
+        AccountType type = AccountType.Checking)
     {
         EnsureValidLimit(overdraftLimit);
+        EnsureValidType(type, overdraftLimit);
         ArgumentOutOfRangeException.ThrowIfNegative(version);
 
         if (balance + overdraftLimit < Money.Zero(balance.Currency))
@@ -91,7 +97,7 @@ public sealed class Account
             throw new DomainException($"Dados corrompidos na conta {number}: o saldo {balance} passa do limite {overdraftLimit}.");
         }
 
-        return new Account(id, number, ValidateHolderName(holderName), overdraftLimit)
+        return new Account(id, number, ValidateHolderName(holderName), overdraftLimit, type)
         {
             Balance = balance,
             Status = status,
@@ -114,7 +120,36 @@ public sealed class Account
     public Result Withdraw(Money amount, DateTimeOffset occurredAt) =>
         Debit(amount, TransactionType.Withdrawal, occurredAt, counterpartyId: null);
 
+    /// <summary>Tarifa do mês. Respeita o limite como um saque: sem saldo e sem limite, a tarifa é recusada.</summary>
+    public Result ChargeFee(Money fee, DateTimeOffset occurredAt) =>
+        Debit(fee, TransactionType.Fee, occurredAt, counterpartyId: null);
+
+    public Result CreditInterest(Money interest, DateTimeOffset occurredAt)
+    {
+        var canMove = CanMove(interest);
+        if (canMove.IsFailure)
+        {
+            return canMove;
+        }
+
+        Credit(interest, TransactionType.Interest, occurredAt, counterpartyId: null);
+        return Result.Success();
+    }
+
     public void ClearDomainEvents() => _domainEvents.Clear();
+
+    private static void EnsureValidType(AccountType type, Money overdraftLimit)
+    {
+        if (!Enum.IsDefined(type))
+        {
+            throw new DomainException($"Tipo de conta desconhecido: {type}.");
+        }
+
+        if (type == AccountType.Savings && overdraftLimit.IsPositive)
+        {
+            throw new DomainException("Poupança não tem limite de cheque especial.");
+        }
+    }
 
     /// <summary>Verifica se a conta pode movimentar o valor: conta ativa, valor positivo e mesma moeda.</summary>
     internal Result CanMove(Money amount)
@@ -164,6 +199,7 @@ public sealed class Account
     {
         EnsureNotClosed();
         EnsureValidLimit(newLimit);
+        EnsureValidType(Type, newLimit);
 
         if (newLimit.Currency != Currency)
         {

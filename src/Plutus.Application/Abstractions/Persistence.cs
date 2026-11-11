@@ -18,6 +18,14 @@ public interface IAccountRepository
     /// </summary>
     Task UpdateAsync(Account account, CancellationToken cancellationToken);
 
+    /// <summary>Números das contas ativas, na ordem de abertura. É a lista que o fechamento do mês percorre.</summary>
+    Task<IReadOnlyList<AccountNumber>> GetActiveNumbersAsync(CancellationToken cancellationToken);
+
+    Task<bool> IsMonthClosedAsync(AccountId accountId, string month, CancellationToken cancellationToken);
+
+    /// <summary>Marca o mês (aaaa-mm) como fechado para a conta. Deve rodar na mesma transação do lançamento.</summary>
+    Task RegisterClosingAsync(AccountId accountId, string month, string outcome, DateTimeOffset closedAt, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<Transaction>> GetTransactionsAsync(
         AccountId accountId,
         DateTimeOffset from,

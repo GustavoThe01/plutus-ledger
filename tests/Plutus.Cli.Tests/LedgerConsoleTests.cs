@@ -77,6 +77,7 @@ public sealed class LedgerConsoleTests : IAsyncLifetime
     public async Task OpenAccount_ShowsTheNewNumber()
     {
         Choose(LedgerConsole.MenuOption.OpenAccount);
+        _console.Input.PushKey(ConsoleKey.Enter); // conta corrente, a primeira opção
         Type("Ana Lima", "500");
         Choose(LedgerConsole.MenuOption.Exit);
 
@@ -178,5 +179,46 @@ public sealed class LedgerConsoleTests : IAsyncLifetime
         Assert.Contains("-R$ 50,00", _console.Output, StringComparison.Ordinal);
         Assert.Contains("Página 1 de 1 · 2 lançamentos", _console.Output, StringComparison.Ordinal);
         Assert.Contains("R$ 150,00", _console.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Savings_SkipsTheLimit_AndClosingTheMonthCreditsInterestOnlyOnce()
+    {
+        var number = Domain.Accounts.AccountNumber.FromSequence(1).Value; // a primeira conta aberta no banco vazio
+        Choose(LedgerConsole.MenuOption.OpenAccount);
+        _console.Input.PushKey(ConsoleKey.DownArrow); // poupança
+        _console.Input.PushKey(ConsoleKey.Enter);
+        Type("Bia Souza");
+        Choose(LedgerConsole.MenuOption.Deposit);
+        Type(number, "1000");
+        Choose(LedgerConsole.MenuOption.CloseMonth);
+        Type("10/2026");
+        Choose(LedgerConsole.MenuOption.CloseMonth);
+        Type("10/2026");
+        Choose(LedgerConsole.MenuOption.ShowAccount);
+        Type(number);
+        Choose(LedgerConsole.MenuOption.Exit);
+
+        await RunAsync();
+
+        Assert.DoesNotContain("Limite de cheque especial", _console.Output, StringComparison.Ordinal);
+        Assert.Contains("Fechamento de 2026-10", _console.Output, StringComparison.Ordinal);
+        Assert.Contains("Rendimento creditado", _console.Output, StringComparison.Ordinal);
+        Assert.Contains("Já fechado", _console.Output, StringComparison.Ordinal);
+        Assert.Contains("Poupança", _console.Output, StringComparison.Ordinal);
+        Assert.Contains("R$ 1.005,00", _console.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CloseMonth_RefusesAMonthThatHasNotEnded()
+    {
+        var next = DateTimeOffset.UtcNow.AddMonths(1);
+        Choose(LedgerConsole.MenuOption.CloseMonth);
+        Type(next.ToString("MM/yyyy", System.Globalization.CultureInfo.InvariantCulture));
+        Choose(LedgerConsole.MenuOption.Exit);
+
+        await RunAsync();
+
+        Assert.Contains("ainda não terminou", _console.Output, StringComparison.Ordinal);
     }
 }

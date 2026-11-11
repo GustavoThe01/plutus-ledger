@@ -19,7 +19,10 @@ public static class DependencyInjection
                 options => options.DefaultCurrency.Length == 3
                     && options.MaxOverdraftLimit >= 0m
                     && options.MaxStatementDays > 0
-                    && options.MaxPageSize > 0,
+                    && options.MaxPageSize > 0
+                    && options.CheckingMonthlyFee > 0m
+                    && options.CheckingFeeExemptBalance >= 0m
+                    && options.SavingsMonthlyRate is > 0m and < 1m,
                 "Configuração inválida na seção Ledger.")
             .ValidateOnStart();
 
@@ -30,6 +33,8 @@ public static class DependencyInjection
         services.AddScoped<GetAccount>();
         services.AddScoped<GetStatement>();
         services.AddScoped<GetMonthlySummary>();
+        services.AddScoped<CloseMonth>();
+        services.AddSingleton<MonthlyPolicyCatalog>();
 
         return services;
     }

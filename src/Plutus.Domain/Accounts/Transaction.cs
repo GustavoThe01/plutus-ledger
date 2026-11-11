@@ -6,6 +6,12 @@ public enum TransactionType
     Withdrawal = 2,
     TransferIn = 3,
     TransferOut = 4,
+
+    /// <summary>Tarifa mensal da conta corrente (saída).</summary>
+    Fee = 5,
+
+    /// <summary>Rendimento mensal da poupança (entrada).</summary>
+    Interest = 6,
 }
 
 /// <summary>

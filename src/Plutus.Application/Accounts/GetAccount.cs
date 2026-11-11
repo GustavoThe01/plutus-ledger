@@ -12,7 +12,8 @@ public sealed record AccountSummary(
     decimal OverdraftLimit,
     decimal Available,
     string Currency,
-    AccountStatus Status);
+    AccountStatus Status,
+    AccountType Type = AccountType.Checking);
 
 /// <summary>Consulta o saldo e a situação de uma conta.</summary>
 public sealed class GetAccount(IAccountRepository accounts)
@@ -34,6 +35,7 @@ public sealed class GetAccount(IAccountRepository accounts)
                 account.OverdraftLimit.Amount,
                 account.Balance.Amount + account.OverdraftLimit.Amount,
                 account.Balance.Currency,
-                account.Status));
+                account.Status,
+                account.Type));
     }
 }

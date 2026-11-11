@@ -61,7 +61,7 @@ public static class StatementReport
             })
             .ToList();
 
-    private static bool IsInflow(TransactionType type) => type is TransactionType.Deposit or TransactionType.TransferIn;
+    private static bool IsInflow(TransactionType type) => type is TransactionType.Deposit or TransactionType.TransferIn or TransactionType.Interest;
 
     private static string Describe(TransactionType type) => type switch
     {
@@ -69,6 +69,8 @@ public static class StatementReport
         TransactionType.Withdrawal => "Saque",
         TransactionType.TransferIn => "Transferência recebida",
         TransactionType.TransferOut => "Transferência enviada",
+        TransactionType.Fee => "Tarifa mensal",
+        TransactionType.Interest => "Rendimento da poupança",
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Tipo de lançamento desconhecido."),
     };
 }

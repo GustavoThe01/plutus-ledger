@@ -60,9 +60,9 @@
 - **Conceitos:** pirâmide de testes
 
 ### Dia 10 — Regras extras e release
-- [ ] Tarifas/juros via **Strategy** (conta corrente vs. poupança)
-- [ ] `dotnet publish` single-file + seção "Como rodar"
-- [ ] Diagrama de domínio (Mermaid), `CHANGELOG.md`, tag `v1.0.0`
+- [x] Tarifas/juros via **Strategy** (conta corrente vs. poupança)
+- [x] `dotnet publish` single-file + seção "Como rodar"
+- [x] Diagrama de domínio (Mermaid), `CHANGELOG.md`, tag `v1.0.0`
 - **Conceitos:** polimorfismo, distribuição de aplicações .NET
 
 ## Ideias de evolução (opcional)
