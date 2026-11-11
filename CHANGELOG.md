@@ -5,7 +5,28 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+## [1.0.0] - 2026-11-11
+
+Primeira versão completa: os 10 dias do roadmap.
+
 ### Adicionado
+- Tipo de conta (`AccountType`): conta corrente ou poupança. Poupança não aceita limite de cheque especial, nem na abertura nem depois.
+- Regras de fim de mês com **Strategy** (`IMonthlyPolicy`): `CheckingAccountFee` (tarifa com isenção por saldo) e `SavingsInterest` (rendimento truncado no centavo).
+- Lançamentos `Fee` e `Interest`, com `Account.ChargeFee` e `Account.CreditInterest`.
+- Caso de uso `CloseMonth`, idempotente por conta e mês (tabela `monthly_closing`), que só aceita meses encerrados.
+- Migration `V003`: coluna `type` na conta, tabela de lançamentos recriada com os tipos novos no `CHECK` e tabela `monthly_closing`.
+- `LedgerOptions`: `CheckingMonthlyFee`, `CheckingFeeExemptBalance` e `SavingsMonthlyRate`, validados na partida.
+- Console: escolha do tipo de conta na abertura (poupança não pergunta limite), tipo no painel da conta e opção "Fechar o mês".
+- Publicação single-file e self-contained (`dotnet publish -r win-x64` ou `-r linux-x64`).
+- Diagrama de domínio atualizado e seção do README sobre tarifas e rendimentos.
+- 38 testes novos (147 no total). Um deles aplica a V003 sobre um banco do Dia 09 com dados.
+- Cobertura medida: 93,6% das linhas.
+
+### Alterado
+- O console lê o `appsettings.json` da pasta do executável, e não da pasta de onde foi chamado.
+- Com a entrada redirecionada (arquivo ou pipe), o console avisa que precisa de um terminal interativo em vez de lançar uma exceção.
+
+### Adicionado (Dias 01 a 09)
 - Solution `Plutus.slnx` com projetos Domain, Application, Infrastructure e testes.
 - `Directory.Build.props` (Nullable, warnings como erro), Central Package Management e `.editorconfig`.
 - Teste de arquitetura garantindo que Domain não depende das outras camadas.
@@ -46,3 +67,6 @@ e [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Projeto `Plutus.ArchitectureTests` com 7 regras de camada em NetArchTest (fork NetArchTest.eNhancedEdition 1.4.5).
 - Cobertura de código pelo Microsoft.Testing.Platform (`dotnet test --coverage`), ligada em todos os projetos de teste por `tests/Directory.Build.props`.
 - Cobertura medida: 92,4% das linhas, somando os cinco projetos de teste.
+
+[Não lançado]: https://github.com/GustavoThe01/plutus-ledger/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/GustavoThe01/plutus-ledger/releases/tag/v1.0.0

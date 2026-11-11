@@ -12,7 +12,8 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
 {
     private const string AccountColumns = """
         id AS Id, number AS Number, holder_name AS HolderName, balance_cents AS BalanceCents,
-        overdraft_limit_cents AS OverdraftLimitCents, currency AS Currency, status AS Status, version AS Version
+        overdraft_limit_cents AS OverdraftLimitCents, currency AS Currency, status AS Status, version AS Version,
+        type AS Type
         """;
 
     public async Task<Account?> GetByNumberAsync(AccountNumber number, CancellationToken cancellationToken)
@@ -40,8 +41,8 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
         var connection = await session.GetConnectionAsync(cancellationToken);
         await connection.ExecuteAsync(Command(
             """
-            INSERT INTO account (id, number, holder_name, balance_cents, overdraft_limit_cents, currency, status)
-            VALUES (@Id, @Number, @HolderName, @BalanceCents, @OverdraftLimitCents, @Currency, @Status)
+            INSERT INTO account (id, number, holder_name, balance_cents, overdraft_limit_cents, currency, status, type)
+            VALUES (@Id, @Number, @HolderName, @BalanceCents, @OverdraftLimitCents, @Currency, @Status, @Type)
             """,
             AccountRow.FromDomain(account),
             cancellationToken));
@@ -72,6 +73,40 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
         }
 
         await InsertTransactionsAsync(account, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AccountNumber>> GetActiveNumbersAsync(CancellationToken cancellationToken)
+    {
+        var connection = await session.GetConnectionAsync(cancellationToken);
+        var numbers = await connection.QueryAsync<string>(Command(
+            "SELECT number FROM account WHERE status = 'Active' ORDER BY number",
+            null,
+            cancellationToken));
+
+        return numbers.Select(AccountNumber.Parse).ToList();
+    }
+
+    public async Task<bool> IsMonthClosedAsync(AccountId accountId, string month, CancellationToken cancellationToken)
+    {
+        var connection = await session.GetConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<bool>(Command(
+            "SELECT EXISTS (SELECT 1 FROM monthly_closing WHERE account_id = @accountId AND month = @month)",
+            new { accountId = accountId.ToString(), month },
+            cancellationToken));
+    }
+
+    public async Task RegisterClosingAsync(
+        AccountId accountId,
+        string month,
+        string outcome,
+        DateTimeOffset closedAt,
+        CancellationToken cancellationToken)
+    {
+        var connection = await session.GetConnectionAsync(cancellationToken);
+        await connection.ExecuteAsync(Command(
+            "INSERT INTO monthly_closing (account_id, month, outcome, closed_at) VALUES (@accountId, @month, @outcome, @closedAt)",
+            new { accountId = accountId.ToString(), month, outcome, closedAt = PersistenceFormat.Date(closedAt) },
+            cancellationToken));
     }
 
     public async Task<IReadOnlyList<Transaction>> GetTransactionsAsync(
@@ -143,6 +178,8 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
 
         public long Version { get; init; }
 
+        public string Type { get; init; } = nameof(AccountType.Checking);
+
         public static AccountRow FromDomain(Account account) => new()
         {
             Id = account.Id.ToString(),
@@ -153,6 +190,7 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
             Currency = account.Currency,
             Status = account.Status.ToString(),
             Version = account.Version,
+            Type = account.Type.ToString(),
         };
 
         public Account ToDomain() => Account.Restore(
@@ -162,7 +200,8 @@ internal sealed class AccountRepository(DbSession session) : IAccountRepository
             PersistenceFormat.Money(BalanceCents, Currency),
             PersistenceFormat.Money(OverdraftLimitCents, Currency),
             Enum.Parse<AccountStatus>(Status),
-            checked((int)Version));
+            checked((int)Version),
+            Enum.Parse<AccountType>(Type));
     }
 
     private sealed class TransactionRow

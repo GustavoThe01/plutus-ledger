@@ -16,4 +16,13 @@ public sealed class LedgerOptions
 
     /// <summary>Maior quantidade de linhas por página do extrato.</summary>
     public int MaxPageSize { get; set; } = 100;
+
+    /// <summary>Tarifa mensal da conta corrente.</summary>
+    public decimal CheckingMonthlyFee { get; set; } = 12.90m;
+
+    /// <summary>Saldo, no fechamento, a partir do qual a conta corrente fica isenta da tarifa.</summary>
+    public decimal CheckingFeeExemptBalance { get; set; } = 5_000m;
+
+    /// <summary>Rendimento mensal da poupança (0,005 = 0,5% ao mês).</summary>
+    public decimal SavingsMonthlyRate { get; set; } = 0.005m;
 }

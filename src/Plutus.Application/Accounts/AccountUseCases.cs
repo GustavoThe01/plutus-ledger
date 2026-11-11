@@ -11,9 +11,17 @@ namespace Plutus.Application.Accounts;
 /// </remarks>
 public sealed class OpenAccount(IAccountRepository accounts, IUnitOfWork unitOfWork, IOptions<LedgerOptions> options)
 {
+    /// <summary>Abre uma conta corrente.</summary>
+    public Task<Result<AccountNumber>> HandleAsync(
+        string holderName,
+        decimal overdraftLimit,
+        CancellationToken cancellationToken = default) =>
+        HandleAsync(holderName, overdraftLimit, AccountType.Checking, cancellationToken);
+
     public async Task<Result<AccountNumber>> HandleAsync(
         string holderName,
         decimal overdraftLimit,
+        AccountType type,
         CancellationToken cancellationToken = default)
     {
         var settings = options.Value;
@@ -32,7 +40,8 @@ public sealed class OpenAccount(IAccountRepository accounts, IUnitOfWork unitOfW
                     var account = Account.Open(
                         AccountNumber.FromSequence(sequence),
                         holderName,
-                        Money.Create(overdraftLimit, settings.DefaultCurrency));
+                        Money.Create(overdraftLimit, settings.DefaultCurrency),
+                        type);
 
                     await accounts.AddAsync(account, token);
                     return Result<AccountNumber>.Success(account.Number);

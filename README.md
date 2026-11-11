@@ -6,7 +6,7 @@
 ### O deus da riqueza guarda cada centavo
 
 **Livro-razão bancário em C# / .NET 10, com foco em modelagem de domínio.**
-Contas, depósitos, saques, transferências e extratos, com regras protegidas pelo próprio domínio,<br/>
+Contas correntes e poupanças, depósitos, saques, transferências, extratos, tarifas e rendimentos,<br/>com regras protegidas pelo próprio domínio,
 transações explícitas com Dapper e concorrência otimista testada sob carga paralela.
 
 [![CI](https://github.com/GustavoThe01/plutus-ledger/actions/workflows/ci.yml/badge.svg)](https://github.com/GustavoThe01/plutus-ledger/actions/workflows/ci.yml)
@@ -15,8 +15,10 @@ transações explícitas com Dapper e concorrência otimista testada sob carga p
 ![Dapper](https://img.shields.io/badge/Dapper-micro_ORM-1f6feb?style=flat-square)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![xUnit](https://img.shields.io/badge/xUnit-v3-5C2D91?style=flat-square)
-![Roadmap](https://img.shields.io/badge/roadmap-dia_09_de_10-ca8a04?style=flat-square)
-![Testes](https://img.shields.io/badge/testes-109_passando-15803d?style=flat-square)
+![Versão](https://img.shields.io/badge/versão-1.0.0-ca8a04?style=flat-square)
+![Roadmap](https://img.shields.io/badge/roadmap-10_de_10-15803d?style=flat-square)
+![Testes](https://img.shields.io/badge/testes-147_passando-15803d?style=flat-square)
+![Cobertura](https://img.shields.io/badge/cobertura-93,6%25-15803d?style=flat-square)
 
 </div>
 
@@ -57,6 +59,7 @@ Um sistema financeiro é o lugar onde **erros custam dinheiro de verdade**. Por 
 - [Modelo de domínio](#-modelo-de-domínio)
 - [Como uma transferência acontece](#-como-uma-transferência-acontece)
 - [Extrato com LINQ](#-extrato-com-linq)
+- [Tarifas e rendimentos com Strategy](#-tarifas-e-rendimentos-com-strategy)
 - [Competências demonstradas](#-competências-demonstradas)
 - [Metodologias e decisões](#-metodologias-e-decisões)
 - [Roadmap](#️-roadmap)
@@ -74,11 +77,11 @@ Um sistema financeiro é o lugar onde **erros custam dinheiro de verdade**. Por 
 
 | 💎 Domínio | 🧱 Arquitetura | 🧪 Qualidade | 🗓️ Processo |
 |:---:|:---:|:---:|:---:|
-| **1** agregado (`Account`) | **4** projetos + testes | warnings tratados como **erro** | **10** dias de roadmap |
+| **1** agregado (`Account`) | **4** projetos + **5** de teste | **147** testes · warnings como **erro** | **10** dias de roadmap |
 | value objects com `record struct` | regra de dependência **testada** | xUnit v3 · Microsoft.Testing.Platform | **2** ADRs registrados |
-| domain events + Result pattern | Central Package Management | NetArchTest · **92%** de cobertura | Conventional Commits |
+| domain events + Result pattern + Strategy | Central Package Management | NetArchTest · **93,6%** de cobertura | Conventional Commits |
 
-<sub>Metas para o fim do roadmap. O estado atual está nos badges, na seção <a href="#-testes">Testes</a> e em <a href="#-o-que-ainda-falta">O que ainda falta</a>.</sub>
+<sub>Números medidos na versão 1.0.0. Os detalhes estão na seção <a href="#-testes">Testes</a>.</sub>
 
 </div>
 
@@ -96,12 +99,12 @@ Escolhi o nome porque um livro-razão precisa ter essa mesma cegueira: ser **imp
 
 | Módulo | O que resolve |
 |---|---|
-| 🏦 **Contas** | Abertura, bloqueio e encerramento, com número de conta validado |
+| 🏦 **Contas** | Conta corrente ou poupança; abertura, bloqueio e encerramento, com número de conta validado |
 | ➕ **Depósitos** | Entrada de valores com registro no extrato |
 | ➖ **Saques** | Respeitam saldo e limite; conta bloqueada não movimenta |
 | 🔁 **Transferências** | Débito e crédito na **mesma transação**: ou acontecem os dois, ou nenhum |
 | 📜 **Extrato** | Por período, paginado, com saldo acumulado e resumo mensal (LINQ) |
-| 💸 **Tarifas e juros** | Regras diferentes por tipo de conta (Strategy) |
+| 💸 **Tarifas e juros** | Fechamento do mês: tarifa na conta corrente, rendimento na poupança (Strategy), sem cobrar duas vezes |
 | 🖥️ **Console** | Interface rica com Spectre.Console: tabelas, cores e prompts |
 
 ---
@@ -153,10 +156,35 @@ classDiagram
         +Money Balance
         +Money OverdraftLimit
         +AccountStatus Status
+        +AccountType Type
         +int Version
         +Deposit(Money, DateTimeOffset) Result
         +Withdraw(Money, DateTimeOffset) Result
+        +ChargeFee(Money, DateTimeOffset) Result
+        +CreditInterest(Money, DateTimeOffset) Result
         +Block()
+    }
+    class AccountType {
+        <<enum>>
+        Checking
+        Savings
+    }
+    class IMonthlyPolicy {
+        <<interface>>
+        +Calculate(Account) MonthlyCharge
+    }
+    class CheckingAccountFee {
+        -Money fee
+        -Money exemptFrom
+    }
+    class SavingsInterest {
+        -decimal monthlyRate
+    }
+    class MonthlyCharge {
+        <<record>>
+        +TransactionType Type
+        +Money Amount
+        +string Reason
     }
     class Money {
         <<record struct>>
@@ -183,6 +211,10 @@ classDiagram
 
     Account *-- Money
     Account *-- AccountNumber
+    Account --> AccountType
+    IMonthlyPolicy <|.. CheckingAccountFee
+    IMonthlyPolicy <|.. SavingsInterest
+    IMonthlyPolicy ..> MonthlyCharge : cria
     Account "1" o-- "*" Transaction
     TransferService ..> Account
     IDomainEvent <|.. MoneyTransferred
@@ -275,6 +307,47 @@ garante isso.
 
 ---
 
+## 💸 Tarifas e rendimentos com Strategy
+
+No fim de cada mês, a conta corrente paga uma tarifa e a poupança rende juros. São duas regras diferentes para a
+mesma pergunta ("o que lançar nesta conta no fechamento?"), então cada uma virou uma classe que implementa
+[`IMonthlyPolicy`](src/Plutus.Domain/Accounts/MonthlyPolicies.cs):
+
+| Tipo de conta | Regra | Valores padrão (`appsettings.json`) |
+|---|---|---|
+| Conta corrente | Tarifa mensal, **isenta** se o saldo no fechamento for de pelo menos R$ 5.000 | `CheckingMonthlyFee` 12,90 · `CheckingFeeExemptBalance` 5000 |
+| Poupança | Rendimento sobre o saldo, **truncado** no centavo; poupança não tem cheque especial | `SavingsMonthlyRate` 0,005 (0,5% ao mês) |
+
+```csharp
+public interface IMonthlyPolicy
+{
+    MonthlyCharge? Calculate(Account account); // null quando não há nada a lançar
+}
+```
+
+O caso de uso [`CloseMonth`](src/Plutus.Application/Accounts/CloseMonth.cs) não tem nenhum `if` por tipo de conta:
+pede a regra ao `MonthlyPolicyCatalog` e aplica o lançamento. Um tipo novo de conta seria uma classe nova, sem mexer
+nas que já existem.
+
+Decisões que tomei no fechamento:
+
+- **Idempotente.** Cada conta fechada ganha uma linha em `monthly_closing` (chave: conta + mês), gravada na mesma
+  transação do lançamento. Fechar o mesmo mês de novo não cobra nem paga duas vezes; o teste de integração roda
+  o fechamento duas vezes e confere o saldo.
+- **Só meses encerrados.** Fechar o mês corrente ou um mês futuro é recusado.
+- **Tarifa sem saldo não vira dívida escondida.** Se a tarifa não cabe no saldo nem no limite, nada é gravado e o
+  mês continua aberto para aquela conta; depois de um depósito, fechar de novo cobra a tarifa.
+- **Uma transação por conta.** Um conflito de concorrência numa conta não desfaz o fechamento das outras.
+- **Truncar, não arredondar.** R$ 199,99 a 0,5% dá R$ 0,99995: o rendimento é R$ 0,99, nunca R$ 1,00. Assim a soma
+  dos rendimentos nunca passa da taxa contratada.
+
+A migration [`V003`](src/Plutus.Infrastructure/Migrations/V003__account_type_and_monthly_closing.sql) acrescenta o
+tipo de conta (as contas antigas viram conta corrente) e recria a tabela de lançamentos com os tipos `Fee` e
+`Interest` no `CHECK`, porque o SQLite não altera um `CHECK` existente. Um teste monta um banco como ele estava no
+Dia 09, com dados, aplica a V003 e confere que saldo, limite e a ordem dos lançamentos continuam iguais.
+
+---
+
 ## 🧠 Competências demonstradas
 
 | Área | Conceitos |
@@ -286,6 +359,8 @@ garante isso.
 | **Concorrência** | Concorrência **otimista** com coluna `Version`, teste de transferências paralelas |
 | **Assíncrono** | `async/await` com `CancellationToken` ponta a ponta |
 | **LINQ** | Projeções, agrupamentos, execução adiada, `IEnumerable` vs `IQueryable` |
+| **Polimorfismo** | **Strategy** para as regras de fim de mês, sem `if` por tipo de conta no caso de uso |
+| **Distribuição** | `dotnet publish` single-file e self-contained para Windows e Linux |
 | **Infra .NET** | Generic Host, DI, Options pattern, `ILogger` |
 | **Organização** | `.slnx`, `Directory.Build.props`, Central Package Management, `.editorconfig` |
 | **Testes** | xUnit v3, NSubstitute, testes de integração e de arquitetura |
@@ -311,7 +386,7 @@ garante isso.
 | Semana | Dias | Tema | Progresso |
 |---|---|---|---|
 | 1 | 01–05 | Solution, value objects, agregado, domain events, casos de uso, Dapper | 🟨🟨🟨🟨🟨 |
-| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | 🟨🟨🟨🟨⬜ |
+| 2 | 06–10 | LINQ e extratos, console, concorrência, testes avançados, release | 🟨🟨🟨🟨🟨 |
 
 Detalhes no [ROADMAP.md](ROADMAP.md) · Mudanças no [CHANGELOG.md](CHANGELOG.md).
 
@@ -353,9 +428,29 @@ Em desenvolvimento, o banco é outro (`plutus-dev.db`) e o log mostra cada opera
 dotnet run --project src/Plutus.Cli --environment Development
 ```
 
-O menu tem abrir conta, consultar saldo, depositar, sacar, transferir (com confirmação), extrato paginado e resumo mensal. Valores aceitam vírgula, como `150,50`.
+O menu tem abrir conta (corrente ou poupança), consultar saldo, depositar, sacar, transferir (com confirmação),
+extrato paginado, resumo mensal e fechar o mês. Valores aceitam vírgula, como `150,50`.
 
-> 📦 A partir do Dia 10 haverá um executável único (single-file) na aba *Releases*.
+### Sem instalar o .NET
+
+Na página da [release v1.0.0](https://github.com/GustavoThe01/plutus-ledger/releases/tag/v1.0.0) há um `.zip` para
+Windows e outro para Linux, cada um com um executável único (o runtime do .NET e o SQLite nativo vão dentro dele)
+e o `appsettings.json`. Basta extrair e rodar `plutus.exe` (Windows) ou `./plutus` (Linux) num terminal. O banco
+`plutus.db` é criado na pasta de onde o programa foi chamado.
+
+Para gerar os executáveis a partir do código:
+
+```bash
+dotnet publish src/Plutus.Cli -c Release -r win-x64 -o publish/win-x64
+```
+
+```bash
+dotnet publish src/Plutus.Cli -c Release -r linux-x64 -o publish/linux-x64
+```
+
+Com o runtime embutido e comprimido, o executável ficou com 38 MB no Windows e 40 MB no Linux. As opções de
+publicação estão no [`Plutus.Cli.csproj`](src/Plutus.Cli/Plutus.Cli.csproj) e só valem quando um runtime
+(`-r`) é informado, então o `dotnet run` continua igual.
 
 ---
 
@@ -365,10 +460,10 @@ Os testes usam **xUnit v3** sobre o **Microsoft.Testing.Platform**, o novo execu
 
 | Projeto de teste | Tipo | Situação |
 |---|---|---|
-| `Plutus.Domain.Tests` | Unitários do domínio + regra de camadas | ✅ 58 testes (Account, TransferService, Money, AccountNumber, camadas) |
-| `Plutus.Application.Tests` | Casos de uso com NSubstitute, DI e Options, extrato com LINQ | ✅ 23 testes |
-| `Plutus.IntegrationTests` | Dapper + SQLite (em memória e em arquivo), com as migrations reais e concorrência | ✅ 15 testes |
-| `Plutus.Cli.Tests` | Console com teclado simulado (`Spectre.Console.Testing`) e SQLite real | ✅ 6 testes |
+| `Plutus.Domain.Tests` | Unitários do domínio + regra de camadas | ✅ 79 testes (Account, TransferService, Money, AccountNumber, tarifas e rendimentos, camadas) |
+| `Plutus.Application.Tests` | Casos de uso com NSubstitute, DI e Options, extrato com LINQ, fechamento do mês | ✅ 32 testes |
+| `Plutus.IntegrationTests` | Dapper + SQLite (em memória e em arquivo), com as migrations reais, concorrência e fechamento idempotente | ✅ 21 testes |
+| `Plutus.Cli.Tests` | Console com teclado simulado (`Spectre.Console.Testing`) e SQLite real | ✅ 8 testes |
 | `Plutus.ArchitectureTests` | Regras de camada com NetArchTest (fork mantido: NetArchTest.eNhancedEdition) | ✅ 7 testes |
 
 As regras de arquitetura viram testes: o domínio não conhece Dapper nem DI, a aplicação só fala com o banco pelas portas,
@@ -379,11 +474,11 @@ NetArchTest.eNhancedEdition porque o pacote original não recebe atualização d
 
 | Projeto | Cobertura |
 |---|---:|
-| Plutus.Domain | 95,2% |
-| Plutus.Application | 90,1% |
+| Plutus.Domain | 96,5% |
+| Plutus.Application | 92,9% |
 | Plutus.Infrastructure | 99,5% |
-| Plutus.Cli | 85,1% |
-| **Total** | **92,4%** |
+| Plutus.Cli | 86,0% |
+| **Total** | **93,6%** |
 
 ```bash
 dotnet test --coverage --coverage-output-format cobertura
@@ -400,15 +495,16 @@ plutus-ledger/
 │   ├── adr/                        # ✅ decisões de arquitetura
 │   └── assets/                     # ✅ banner e imagens
 ├── src/
-│   ├── Plutus.Domain/              # ✅ Account, TransferService, Money, Result, eventos
-│   ├── Plutus.Application/         # ✅ casos de uso, portas, DI e Options
-│   ├── Plutus.Infrastructure/      # ✅ Dapper, migrations e transações
+│   ├── Plutus.Domain/              # ✅ Account, TransferService, Money, Result, eventos, regras de fim de mês
+│   ├── Plutus.Application/         # ✅ casos de uso (incluindo CloseMonth), portas, DI e Options
+│   ├── Plutus.Infrastructure/      # ✅ Dapper, migrations V001 a V003 e transações
 │   └── Plutus.Cli/                 # ✅ Generic Host, Spectre.Console e appsettings por ambiente
 ├── tests/
 │   ├── Plutus.Domain.Tests/        # ✅ testes do domínio e de arquitetura
 │   ├── Plutus.Application.Tests/   # ✅ testes dos casos de uso
 │   ├── Plutus.IntegrationTests/    # ✅ testes com SQLite real
-│   └── Plutus.Cli.Tests/           # ✅ testes do console
+│   ├── Plutus.Cli.Tests/           # ✅ testes do console
+│   └── Plutus.ArchitectureTests/   # ✅ regras de camada com NetArchTest
 ├── Plutus.slnx
 ├── Directory.Build.props           # ✅ Nullable, warnings como erro
 ├── Directory.Packages.props        # ✅ versões centralizadas
@@ -433,12 +529,12 @@ Mantenho aqui um checklist vivo do que ainda vou incrementar neste repositório.
 - [x] Console com Spectre.Console e Generic Host (Dia 07)
 - [x] Concorrência otimista com teste paralelo (Dia 08)
 - [x] Testes de integração, mocks, NetArchTest e cobertura (Dia 09)
-- [ ] Tarifas com Strategy, publish single-file e release `v1.0.0` (Dia 10)
+- [x] Tarifas com Strategy, publish single-file e release `v1.0.0` (Dia 10)
 
 **README**
 - [ ] GIF do console em funcionamento (extrato e transferência)
-- [ ] Badge de cobertura de testes
-- [ ] Atualizar "Em números" e a tabela de testes com valores reais
+- [x] Badge de cobertura de testes (valor medido na versão 1.0.0)
+- [x] Atualizar "Em números" e a tabela de testes com valores reais
 - [ ] Definir e adicionar uma licença (`LICENSE`)
 - [ ] Versão em inglês do README
 
